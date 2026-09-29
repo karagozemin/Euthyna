@@ -26,7 +26,7 @@ function meaning() {
     payee: "0x1111111111111111111111111111111111111111" as Address,
     token: "0x3600000000000000000000000000000000000000" as Address,
     amountMinor: "125000000",
-    receiptHash: `0x${"8".repeat(64)}` as Hex,
+    decisionCommitmentHash: `0x${"8".repeat(64)}` as Hex,
     validUntilUnix: "1800000600",
     chainId,
     verifyingContract: vault,
@@ -90,4 +90,3 @@ describe("WitnessAuthorizationService", () => {
     ).rejects.toThrow(/failed deterministic validation/);
   });
 });
-

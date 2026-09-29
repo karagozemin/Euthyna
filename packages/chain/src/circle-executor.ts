@@ -18,7 +18,11 @@ import {
   arcExplorerTransactionUrl,
   type ArcDeploymentConfig,
 } from "./arc-config.js";
-import { encodeReleaseCall, OBLIGATION_VAULT_ABI } from "./attestation.js";
+import {
+  encodeReleaseCall,
+  hashWitnessAttestation,
+  OBLIGATION_VAULT_ABI,
+} from "./attestation.js";
 import type { ExecutionSimulator, PreparedTransaction } from "./simulator.js";
 
 const ARC_MIN_MAX_FEE_PER_GAS = 20_000_000_000n;
@@ -29,6 +33,7 @@ export interface CircleSigningClient {
     transaction: string;
     memo?: string;
   }): Promise<{ data?: { signedTransaction?: string; txHash?: string } }>;
+  getWallet?(input: { id: string }): Promise<{ data?: { wallet?: { address?: string } } }>;
 }
 
 export interface CircleSignerCredentials {
@@ -54,6 +59,17 @@ export class CircleTransactionSigner {
     }
     return signed as Hex;
   }
+
+  async assertWalletAddress(expectedAddress: Address): Promise<void> {
+    if (!this.client.getWallet) {
+      throw new Error("Circle client cannot verify the configured wallet address");
+    }
+    const response = await this.client.getWallet({ id: this.walletId });
+    const actual = response.data?.wallet?.address;
+    if (!actual || actual.toLowerCase() !== expectedAddress.toLowerCase()) {
+      throw new Error("Circle wallet ID does not match CIRCLE_WALLET_ADDRESS");
+    }
+  }
 }
 
 export function createCircleTransactionSigner(
@@ -71,6 +87,8 @@ export interface SubmitAuthorization {
   attestation: WitnessAttestation;
   witnessSignature: Hex;
   ownerApproval?: Hex;
+  /** Testnet/operator hook used to prove recovery from a process exit after broadcast. */
+  afterBroadcast?: (txHash: Hex) => Promise<void> | void;
 }
 
 export class SimulationFailedError extends Error {
@@ -108,8 +126,9 @@ export class CircleArcExecutor {
     if (attestation.token.toLowerCase() !== this.config.usdcAddress.toLowerCase()) {
       throw new Error("Attestation token does not match configured Arc USDC");
     }
-    const existing = await this.reconcile(attestation.obligationId as Hex);
+    const existing = await this.reconcile(attestation);
     if (existing) return existing;
+    await this.signer.assertWalletAddress(this.config.circleWalletAddress as Address);
 
     const data = encodeReleaseCall(
       attestation,
@@ -159,24 +178,27 @@ export class CircleArcExecutor {
 
     try {
       const txHash = await this.client.sendRawTransaction({ serializedTransaction: signed });
+      await rawInput.afterBroadcast?.(txHash);
       const receipt = await this.client.waitForTransactionReceipt({ hash: txHash });
       if (receipt.status !== "success") {
         throw new Error(`Arc transaction reverted: ${txHash}`);
       }
-      const settlement = await this.reconcile(attestation.obligationId as Hex);
+      const settlement = await this.reconcile(attestation);
       if (!settlement || settlement.txHash.toLowerCase() !== txHash.toLowerCase()) {
         throw new Error("Finalized transaction is missing the expected ObligationSettled event");
       }
       return { ...settlement, status: "FINAL" };
     } catch (error) {
       // A response can be lost after broadcast. Chain state is authoritative.
-      const settlement = await this.reconcile(attestation.obligationId as Hex);
+      const settlement = await this.reconcile(attestation);
       if (settlement) return settlement;
       throw error;
     }
   }
 
-  async reconcile(obligationId: Hex): Promise<Settlement | null> {
+  async reconcile(rawAttestation: WitnessAttestation): Promise<Settlement | null> {
+    const attestation = WitnessAttestationSchema.parse(rawAttestation);
+    const obligationId = attestation.obligationId as Hex;
     const isSettled = await this.client.readContract({
       address: this.config.vaultAddress as Address,
       abi: OBLIGATION_VAULT_ABI,
@@ -197,6 +219,39 @@ export class CircleArcExecutor {
     if (!event?.transactionHash || event.blockNumber === null) {
       throw new Error("Vault marks obligation settled but no settlement event was found");
     }
+    const expectedAttestationHash = hashWitnessAttestation(
+      this.config.chainId,
+      this.config.vaultAddress as Address,
+      attestation,
+    );
+    const equalAuthorizationField = (observed: unknown, expected: unknown): boolean => {
+      if (typeof observed === "string" && typeof expected === "string") {
+        return observed.startsWith("0x") && expected.startsWith("0x")
+          ? observed.toLowerCase() === expected.toLowerCase()
+          : observed === expected;
+      }
+      return observed === expected;
+    };
+    const mismatches = [
+      ["operationId", event.args.operationId, attestation.operationId],
+      ["vendorIdHash", event.args.vendorIdHash, attestation.vendorIdHash],
+      ["payee", event.args.payee?.toLowerCase(), attestation.payee.toLowerCase()],
+      ["amount", event.args.amount?.toString(), attestation.amountMinor],
+      ["evidenceRoot", event.args.evidenceRoot, attestation.evidenceRoot],
+      [
+        "decisionCommitmentHash",
+        event.args.decisionCommitmentHash,
+        attestation.decisionCommitmentHash,
+      ],
+      ["attestationHash", event.args.attestationHash, expectedAttestationHash],
+    ].filter(([, observed, expected]) => !equalAuthorizationField(observed, expected));
+    if (mismatches.length > 0) {
+      throw new Error(
+        `Settled obligation event does not match submitted authorization: ${mismatches
+          .map(([field]) => field)
+          .join(", ")}`,
+      );
+    }
     const block = await this.client.getBlock({ blockNumber: event.blockNumber });
     return SettlementSchema.parse({
       chainId: this.config.chainId,
@@ -206,7 +261,13 @@ export class CircleArcExecutor {
       status: "RECONCILED",
       explorerUrl: arcExplorerTransactionUrl(this.config, event.transactionHash),
       finalizedAt: new Date(Number(block.timestamp) * 1_000).toISOString(),
+      operationId: attestation.operationId,
+      vendorIdHash: attestation.vendorIdHash,
+      payee: attestation.payee,
+      amountMinor: attestation.amountMinor,
+      evidenceRoot: attestation.evidenceRoot,
+      decisionCommitmentHash: attestation.decisionCommitmentHash,
+      attestationHash: expectedAttestationHash,
     });
   }
 }
-

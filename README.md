@@ -27,3 +27,11 @@ pnpm build
 ```
 
 The local vertical slice covers ingestion through an immutable receipt, including crash-safe reconciliation. Raw model output is never an authorization input.
+
+## Arc Testnet milestone
+
+The hardened Arc path, reproducible deployment script, Circle signing smoke test,
+funding preflight, deliberate post-broadcast crash mode, and public proof format
+are documented in [`docs/FIRST_ARC_SETTLEMENT.md`](docs/FIRST_ARC_SETTLEMENT.md).
+No placeholder deployment or transaction hashes are committed: the proof file
+is populated only from a successful Arc Testnet run.

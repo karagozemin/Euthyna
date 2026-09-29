@@ -81,6 +81,7 @@ CREATE TABLE payment_intents (
 CREATE TABLE attestations (
   id text PRIMARY KEY, intent_id text NOT NULL UNIQUE REFERENCES payment_intents(id), operation_id text NOT NULL UNIQUE,
   typed_data_hash text NOT NULL,
+  decision_commitment_hash text NOT NULL,
   valid_until timestamptz NOT NULL, witness_signature text NOT NULL, signer_version text NOT NULL,
   vendor_version bigint NOT NULL, policy_version bigint NOT NULL, witness_version bigint NOT NULL, rules_version bigint NOT NULL,
   chain_id bigint NOT NULL, verifying_contract text NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
@@ -88,7 +89,8 @@ CREATE TABLE attestations (
 CREATE TABLE settlements (
   id text PRIMARY KEY, intent_id text NOT NULL UNIQUE REFERENCES payment_intents(id), chain_id bigint NOT NULL,
   chain text NOT NULL, tx_hash text NOT NULL, submitted_at timestamptz NOT NULL, finalized_at timestamptz,
-  block_number numeric(78,0), status settlement_status NOT NULL, receipt_hash text NOT NULL,
+  block_number numeric(78,0), status settlement_status NOT NULL,
+  decision_commitment_hash text NOT NULL, attestation_hash text NOT NULL, final_receipt_hash text,
   created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(chain_id, tx_hash)
 );
 CREATE TABLE audit_events (

@@ -365,7 +365,7 @@ export const WitnessAttestationSchema = z.object({
   token: AddressSchema,
   amountMinor: MinorUnitStringSchema,
   evidenceRoot: Hex32Schema,
-  receiptHash: Hex32Schema,
+  decisionCommitmentHash: Hex32Schema,
   vendorVersion: z.number().int().positive(),
   policyVersion: z.number().int().positive(),
   witnessVersion: z.number().int().positive(),
@@ -392,8 +392,71 @@ export const SettlementSchema = z.object({
   status: SettlementStatusSchema,
   explorerUrl: z.string().url(),
   finalizedAt: IsoDateTimeSchema,
+  operationId: Hex32Schema,
+  vendorIdHash: Hex32Schema,
+  payee: AddressSchema,
+  amountMinor: MinorUnitStringSchema,
+  evidenceRoot: Hex32Schema,
+  decisionCommitmentHash: Hex32Schema,
+  attestationHash: Hex32Schema,
 });
 export type Settlement = z.infer<typeof SettlementSchema>;
+
+const ReceiptAgentSchema = z.object({
+  planId: IdentifierSchema,
+  action: DecisionActionSchema,
+  reasonCodes: z.array(PlannerReasonCodeSchema),
+  rationale: z.string().min(1),
+  businessStateHash: Hex32Schema,
+  provider: z.string().min(1),
+  model: z.string().min(1),
+  version: z.string().min(1),
+});
+
+const ReceiptWitnessSchema = z.object({
+  verdict: z.enum(["VERIFIED", "HOLD", "REJECT"]),
+  reasonCode: WitnessReasonCodeSchema.nullable(),
+  evidenceRoot: Hex32Schema,
+  checks: z.array(WitnessCheckSchema).length(10),
+  vendorVersion: z.number().int().positive(),
+});
+
+/**
+ * The pre-authorization commitment. It deliberately excludes signatures,
+ * attestation hashes, transaction data, and the final receipt hash so the
+ * witness can sign it without a circular dependency.
+ */
+export const DecisionCommitmentBodySchema = z.object({
+  commitmentVersion: z.literal("1"),
+  receiptId: IdentifierSchema,
+  businessId: IdentifierSchema,
+  vendorId: IdentifierSchema,
+  obligationId: IdentifierSchema,
+  classification: z.enum(["REAL", "TEST"]),
+  agent: ReceiptAgentSchema,
+  witness: ReceiptWitnessSchema,
+  payment: z.object({
+    operationId: IdentifierSchema,
+    payee: AddressSchema,
+    token: AddressSchema,
+    amountMinor: MinorUnitStringSchema,
+  }),
+  authorizationContext: z.object({
+    policyVersion: z.number().int().positive(),
+    witnessVersion: z.number().int().positive(),
+    rulesVersion: z.number().int().positive(),
+    validUntilUnix: MinorUnitStringSchema,
+    chainId: z.number().int().positive(),
+    verifyingContract: AddressSchema,
+  }),
+  createdAt: IsoDateTimeSchema,
+});
+export type DecisionCommitmentBody = z.infer<typeof DecisionCommitmentBodySchema>;
+
+export const DecisionCommitmentSchema = DecisionCommitmentBodySchema.extend({
+  decisionCommitmentHash: Hex32Schema,
+});
+export type DecisionCommitment = z.infer<typeof DecisionCommitmentSchema>;
 
 export const DecisionReceiptBodySchema = z.object({
   receiptId: IdentifierSchema,
@@ -401,23 +464,9 @@ export const DecisionReceiptBodySchema = z.object({
   vendorId: IdentifierSchema,
   obligationId: IdentifierSchema,
   classification: z.enum(["REAL", "TEST"]),
-  agent: z.object({
-    planId: IdentifierSchema,
-    action: DecisionActionSchema,
-    reasonCodes: z.array(PlannerReasonCodeSchema),
-    rationale: z.string().min(1),
-    businessStateHash: Hex32Schema,
-    provider: z.string().min(1),
-    model: z.string().min(1),
-    version: z.string().min(1),
-  }),
-  witness: z.object({
-    verdict: z.enum(["VERIFIED", "HOLD", "REJECT"]),
-    reasonCode: WitnessReasonCodeSchema.nullable(),
-    evidenceRoot: Hex32Schema,
-    checks: z.array(WitnessCheckSchema).length(10),
-    vendorVersion: z.number().int().positive(),
-  }),
+  agent: ReceiptAgentSchema,
+  witness: ReceiptWitnessSchema,
+  decisionCommitmentHash: Hex32Schema,
   authorization: z.object({
     policyVersion: z.number().int().positive(),
     attestationHash: Hex32Schema.nullable(),
@@ -437,6 +486,6 @@ export const DecisionReceiptBodySchema = z.object({
 export type DecisionReceiptBody = z.infer<typeof DecisionReceiptBodySchema>;
 
 export const DecisionReceiptSchema = DecisionReceiptBodySchema.extend({
-  receiptHash: Hex32Schema,
+  finalReceiptHash: Hex32Schema,
 });
 export type DecisionReceipt = z.infer<typeof DecisionReceiptSchema>;

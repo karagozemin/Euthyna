@@ -8,12 +8,14 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "arc:first-settlement": "pnpm build && node dist/first-arc-settlement.js"
   },
   "dependencies": {
     "@euthyna/chain": "workspace:*",
     "@euthyna/db": "workspace:*",
     "@euthyna/domain": "workspace:*",
+    "@euthyna/evidence": "workspace:*",
     "@euthyna/planner": "workspace:*",
     "@euthyna/receipts": "workspace:*",
     "@euthyna/witness": "workspace:*",

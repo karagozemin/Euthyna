@@ -30,7 +30,7 @@ contract ObligationVault is EIP712, Ownable, Pausable, ReentrancyGuard {
         address token;
         uint256 amount;
         bytes32 evidenceRoot;
-        bytes32 receiptHash;
+        bytes32 decisionCommitmentHash;
         uint64 vendorVersion;
         uint64 policyVersion;
         uint64 witnessVersion;
@@ -41,12 +41,13 @@ contract ObligationVault is EIP712, Ownable, Pausable, ReentrancyGuard {
     }
 
     bytes32 public constant WITNESS_ATTESTATION_TYPEHASH = keccak256(
-        "WitnessAttestation(bytes32 obligationId,bytes32 operationId,bytes32 businessIdHash,bytes32 vendorIdHash,address payee,address token,uint256 amount,bytes32 evidenceRoot,bytes32 receiptHash,uint64 vendorVersion,uint64 policyVersion,uint64 witnessVersion,uint64 rulesVersion,uint64 validUntil,uint256 chainId,address verifyingContract)"
+        "WitnessAttestation(bytes32 obligationId,bytes32 operationId,bytes32 businessIdHash,bytes32 vendorIdHash,address payee,address token,uint256 amount,bytes32 evidenceRoot,bytes32 decisionCommitmentHash,uint64 vendorVersion,uint64 policyVersion,uint64 witnessVersion,uint64 rulesVersion,uint64 validUntil,uint256 chainId,address verifyingContract)"
     );
     bytes32 public constant OWNER_APPROVAL_TYPEHASH =
         keccak256("OwnerApproval(bytes32 attestationHash,uint64 deadline)");
 
     IERC20 public immutable settlementToken;
+    bytes32 public immutable vaultBusinessIdHash;
     address public witnessSigner;
     uint256 public perPaymentCap;
     uint256 public approvalThreshold;
@@ -70,6 +71,7 @@ contract ObligationVault is EIP712, Ownable, Pausable, ReentrancyGuard {
     error StaleRulesVersion(uint64 supplied, uint64 current);
     error ChainIdMismatch(uint256 supplied, uint256 current);
     error VerifyingContractMismatch(address supplied, address current);
+    error BusinessIdMismatch(bytes32 supplied, bytes32 expected);
     error VendorInactive(bytes32 vendorIdHash);
     error PayeeMismatch(address supplied, address current);
     error TokenMismatch(address supplied, address expected);
@@ -86,27 +88,34 @@ contract ObligationVault is EIP712, Ownable, Pausable, ReentrancyGuard {
     event PolicySet(uint64 indexed version, uint256 perPaymentCap, uint256 approvalThreshold);
     event ObligationSettled(
         bytes32 indexed obligationId,
+        bytes32 indexed operationId,
         bytes32 indexed vendorIdHash,
-        address indexed payee,
+        address payee,
         uint256 amount,
         bytes32 evidenceRoot,
-        bytes32 receiptHash
+        bytes32 decisionCommitmentHash,
+        bytes32 attestationHash
     );
 
     constructor(
         address initialOwner,
         address initialWitnessSigner,
+        bytes32 initialVaultBusinessIdHash,
         IERC20 token,
         uint256 initialPerPaymentCap,
         uint256 initialApprovalThreshold
     ) EIP712("Euthyna ObligationVault", "1") Ownable(initialOwner) {
-        if (initialOwner == address(0) || initialWitnessSigner == address(0) || address(token) == address(0)) {
+        if (
+            initialOwner == address(0) || initialWitnessSigner == address(0) || address(token) == address(0)
+                || initialVaultBusinessIdHash == bytes32(0)
+        ) {
             revert ZeroAddress();
         }
         if (initialPerPaymentCap == 0 || initialApprovalThreshold > initialPerPaymentCap) {
             revert InvalidAmount();
         }
         settlementToken = token;
+        vaultBusinessIdHash = initialVaultBusinessIdHash;
         witnessSigner = initialWitnessSigner;
         perPaymentCap = initialPerPaymentCap;
         approvalThreshold = initialApprovalThreshold;
@@ -130,6 +139,9 @@ contract ObligationVault is EIP712, Ownable, Pausable, ReentrancyGuard {
         if (attestation.chainId != block.chainid) revert ChainIdMismatch(attestation.chainId, block.chainid);
         if (attestation.verifyingContract != address(this)) {
             revert VerifyingContractMismatch(attestation.verifyingContract, address(this));
+        }
+        if (attestation.businessIdHash != vaultBusinessIdHash) {
+            revert BusinessIdMismatch(attestation.businessIdHash, vaultBusinessIdHash);
         }
         if (attestation.policyVersion != policyVersion) {
             revert StalePolicyVersion(attestation.policyVersion, policyVersion);
@@ -156,7 +168,7 @@ contract ObligationVault is EIP712, Ownable, Pausable, ReentrancyGuard {
         if (
             attestation.obligationId == bytes32(0) || attestation.operationId == bytes32(0)
                 || attestation.businessIdHash == bytes32(0) || attestation.vendorIdHash == bytes32(0)
-                || attestation.evidenceRoot == bytes32(0) || attestation.receiptHash == bytes32(0)
+                || attestation.evidenceRoot == bytes32(0) || attestation.decisionCommitmentHash == bytes32(0)
         ) revert InvalidCommitment();
 
         bytes32 digest = hashAttestation(attestation);
@@ -170,11 +182,13 @@ contract ObligationVault is EIP712, Ownable, Pausable, ReentrancyGuard {
         settlementToken.safeTransfer(attestation.payee, attestation.amount);
         emit ObligationSettled(
             attestation.obligationId,
+            attestation.operationId,
             attestation.vendorIdHash,
             attestation.payee,
             attestation.amount,
             attestation.evidenceRoot,
-            attestation.receiptHash
+            attestation.decisionCommitmentHash,
+            digest
         );
     }
 
@@ -190,7 +204,7 @@ contract ObligationVault is EIP712, Ownable, Pausable, ReentrancyGuard {
                 attestation.token,
                 attestation.amount,
                 attestation.evidenceRoot,
-                attestation.receiptHash,
+                attestation.decisionCommitmentHash,
                 attestation.vendorVersion,
                 attestation.policyVersion,
                 attestation.witnessVersion,

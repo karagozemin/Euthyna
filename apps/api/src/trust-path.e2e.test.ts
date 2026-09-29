@@ -2,7 +2,7 @@ import { InMemoryEuthynaRepository } from "@euthyna/db";
 import type { BusinessState, PlanningObligation } from "@euthyna/domain";
 import { LocalDeterministicExecutor } from "@euthyna/chain";
 import { BoundedDecisionAgent, validatePaymentPlan } from "@euthyna/planner";
-import { createDecisionReceipt } from "@euthyna/receipts";
+import { createDecisionCommitment, createDecisionReceipt } from "@euthyna/receipts";
 import {
   LocalPrivateKeyWitnessSigner,
   WitnessAuthorizationService,
@@ -82,7 +82,10 @@ describe("local end-to-end proof-of-obligation trust path", () => {
       tx.transitionObligation(input.obligation.id, "PLANNED", "decision-agent", null, now.toISOString());
     });
 
-    const preReceipt = createDecisionReceipt({
+    const operationId = "op_obl_valid_release_1";
+    const validUntilUnix = "1790727000";
+    const decisionCommitment = createDecisionCommitment({
+      commitmentVersion: "1",
       receiptId: "rcpt_obl_valid",
       businessId: input.obligation.businessId,
       vendorId: input.obligation.vendorId,
@@ -97,20 +100,31 @@ describe("local end-to-end proof-of-obligation trust path", () => {
         ...plan.agent,
       },
       witness: { verdict: witness.verdict, reasonCode: witness.reasonCode, evidenceRoot: witness.evidenceRoot, checks: witness.checks, vendorVersion: witness.vendorVersion },
-      authorization: { policyVersion: witness.policyVersion, attestationHash: null, validUntil: null, signerVersion: null },
-      settlement: null,
-      humanAction: null,
+      payment: {
+        operationId,
+        payee: input.obligation.requestedPayoutDestination,
+        token,
+        amountMinor: input.obligation.amountMinor,
+      },
+      authorizationContext: {
+        policyVersion: witness.policyVersion,
+        witnessVersion: 1,
+        rulesVersion: 1,
+        validUntilUnix,
+        chainId,
+        verifyingContract: vault,
+      },
       createdAt: now.toISOString(),
     });
     const signer = new LocalPrivateKeyWitnessSigner(privateKey, chainId, vault);
     const authorization = await new WitnessAuthorizationService(signer).issue(witness, validation, {
-      operationId: "op_obl_valid_release_1", businessId: input.obligation.businessId, vendorId: input.obligation.vendorId,
+      operationId, businessId: input.obligation.businessId, vendorId: input.obligation.vendorId,
       payee: input.obligation.requestedPayoutDestination as Address, token, amountMinor: input.obligation.amountMinor,
-      receiptHash: preReceipt.receiptHash as Hex, validUntilUnix: "1790727000", chainId, verifyingContract: vault,
+      decisionCommitmentHash: decisionCommitment.decisionCommitmentHash as Hex, validUntilUnix, chainId, verifyingContract: vault,
       witnessVersion: 1, rulesVersion: 1,
     });
     await repository.transaction((tx) => {
-      tx.saveAuthorization({ id: "auth_1", operationId: "op_obl_valid_release_1", obligationId: input.obligation.id, attestationHash: authorization.attestationHash, payload: authorization, createdAt: now.toISOString() });
+      tx.saveAuthorization({ id: "auth_1", operationId, obligationId: input.obligation.id, decisionCommitmentHash: decisionCommitment.decisionCommitmentHash, attestationHash: authorization.attestationHash, payload: authorization, createdAt: now.toISOString() });
       tx.transitionObligation(input.obligation.id, "AUTHORIZED", "witness-signer:v1", null, now.toISOString());
     });
 
@@ -127,16 +141,24 @@ describe("local end-to-end proof-of-obligation trust path", () => {
     await repository.transaction((tx) => tx.saveSettlement(input.obligation.id, retrySettlement, "reconciler"));
 
     const finalReceipt = createDecisionReceipt({
-      ...preReceipt,
+      receiptId: decisionCommitment.receiptId,
+      businessId: decisionCommitment.businessId,
+      vendorId: decisionCommitment.vendorId,
+      obligationId: decisionCommitment.obligationId,
+      classification: decisionCommitment.classification,
+      agent: decisionCommitment.agent,
+      witness: decisionCommitment.witness,
+      decisionCommitmentHash: decisionCommitment.decisionCommitmentHash,
       authorization: { policyVersion: witness.policyVersion, attestationHash: authorization.attestationHash, validUntil: "2026-09-30T00:10:00.000Z", signerVersion: "witness-v1" },
       settlement: retrySettlement,
+      humanAction: null,
+      createdAt: now.toISOString(),
     });
     await repository.transaction((tx) => tx.saveReceipt(finalReceipt));
     const snapshot = repository.snapshot();
     expect(snapshot.obligations.get(input.obligation.id)?.obligation.status).toBe("SETTLED");
     expect(snapshot.settlements.get(input.obligation.id)?.txHash).toBe(onchainSettlement.txHash);
-    expect(snapshot.receipts.get(finalReceipt.receiptId)?.receiptHash).toBe(finalReceipt.receiptHash);
+    expect(snapshot.receipts.get(finalReceipt.receiptId)?.finalReceiptHash).toBe(finalReceipt.finalReceiptHash);
     expect(snapshot.auditEvents.length).toBeGreaterThan(8);
   });
 });
-

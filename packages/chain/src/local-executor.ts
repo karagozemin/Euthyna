@@ -1,7 +1,11 @@
 import { SettlementSchema, type Settlement, type WitnessAttestation } from "@euthyna/domain";
 import { canonicalJson, sha256Hex } from "@euthyna/evidence";
 import { recoverTypedDataAddress, type Address, type Hex } from "viem";
-import { WITNESS_TYPES, toContractAttestation } from "./attestation.js";
+import {
+  WITNESS_TYPES,
+  hashWitnessAttestation,
+  toContractAttestation,
+} from "./attestation.js";
 
 export interface LocalAuthorization {
   attestation: WitnessAttestation;
@@ -54,6 +58,17 @@ export class LocalDeterministicExecutor {
       status: "FINAL",
       explorerUrl: `https://local.invalid/tx/${txHash}`,
       finalizedAt: this.now().toISOString(),
+      operationId: attestation.operationId,
+      vendorIdHash: attestation.vendorIdHash,
+      payee: attestation.payee,
+      amountMinor: attestation.amountMinor,
+      evidenceRoot: attestation.evidenceRoot,
+      decisionCommitmentHash: attestation.decisionCommitmentHash,
+      attestationHash: hashWitnessAttestation(
+        Number(attestation.chainId),
+        attestation.verifyingContract as Address,
+        attestation,
+      ),
     });
     this.operationIds.add(attestation.operationId);
     this.byObligation.set(attestation.obligationId, settlement);
@@ -64,4 +79,3 @@ export class LocalDeterministicExecutor {
     return structuredClone(this.byObligation.get(obligationId) ?? null);
   }
 }
-

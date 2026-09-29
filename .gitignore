@@ -10,3 +10,4 @@ cache/
 out/
 **/out/
 broadcast/
+.euthyna/

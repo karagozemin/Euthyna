@@ -15,7 +15,9 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "arc:smoke": "pnpm build && node dist/arc-smoke.js",
+    "arc:preflight": "pnpm build && node dist/arc-preflight.js"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^8.1.0",

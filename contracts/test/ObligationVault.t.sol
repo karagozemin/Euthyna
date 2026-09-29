@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ObligationVault} from "../src/ObligationVault.sol";
 import {MockUSDC} from "./MockUSDC.sol";
-import {TestBase} from "./TestBase.sol";
+import {TestBase, Vm} from "./TestBase.sol";
 
 contract ObligationVaultTest is TestBase {
     uint256 private constant OWNER_KEY = 0xA11CE;
@@ -13,6 +13,7 @@ contract ObligationVaultTest is TestBase {
     uint256 private constant CAP = 1_000_000_000;
     uint256 private constant APPROVAL_THRESHOLD = 500_000_000;
     bytes32 private constant VENDOR_ID = keccak256("vendor_acme");
+    bytes32 private constant BUSINESS_ID = keccak256("biz_demo");
 
     address private owner;
     address private witness;
@@ -26,7 +27,7 @@ contract ObligationVaultTest is TestBase {
         witness = vm.addr(WITNESS_KEY);
         payee = vm.addr(0xCAFE);
         usdc = new MockUSDC();
-        vault = new ObligationVault(owner, witness, usdc, CAP, APPROVAL_THRESHOLD);
+        vault = new ObligationVault(owner, witness, BUSINESS_ID, usdc, CAP, APPROVAL_THRESHOLD);
         vm.prank(owner);
         vault.setVendor(VENDOR_ID, payee);
         usdc.mint(address(vault), 10_000_000_000);
@@ -37,6 +38,38 @@ contract ObligationVaultTest is TestBase {
         vault.release(attestation, _signWitness(attestation), "");
         assertEq(usdc.balanceOf(payee), 125_000_000);
         assertTrue(vault.settled(attestation.obligationId));
+    }
+
+    function testSettlementEventCommitsToExactAuthorization() public {
+        ObligationVault.WitnessAttestation memory attestation = _attestation(125_000_000);
+        bytes32 attestationHash = vault.hashAttestation(attestation);
+        vm.recordLogs();
+        vault.release(attestation, _signWitness(attestation), "");
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 signature = keccak256(
+            "ObligationSettled(bytes32,bytes32,bytes32,address,uint256,bytes32,bytes32,bytes32)"
+        );
+        bool found;
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].emitter != address(vault) || logs[i].topics[0] != signature) continue;
+            found = true;
+            assertEq(logs[i].topics[1], attestation.obligationId);
+            assertEq(logs[i].topics[2], attestation.operationId);
+            assertEq(logs[i].topics[3], attestation.vendorIdHash);
+            (
+                address emittedPayee,
+                uint256 emittedAmount,
+                bytes32 emittedEvidenceRoot,
+                bytes32 emittedCommitment,
+                bytes32 emittedAttestationHash
+            ) = abi.decode(logs[i].data, (address, uint256, bytes32, bytes32, bytes32));
+            assertEq(emittedPayee, attestation.payee);
+            assertEq(emittedAmount, attestation.amount);
+            assertEq(emittedEvidenceRoot, attestation.evidenceRoot);
+            assertEq(emittedCommitment, attestation.decisionCommitmentHash);
+            assertEq(emittedAttestationHash, attestationHash);
+        }
+        assertTrue(found);
     }
 
     function testReplayAlwaysReverts() public {
@@ -92,7 +125,7 @@ contract ObligationVaultTest is TestBase {
     function testCrossVaultReplayFails() public {
         ObligationVault.WitnessAttestation memory attestation = _attestation(125_000_000);
         bytes memory signature = _signWitness(attestation);
-        ObligationVault otherVault = new ObligationVault(owner, witness, usdc, CAP, APPROVAL_THRESHOLD);
+        ObligationVault otherVault = new ObligationVault(owner, witness, BUSINESS_ID, usdc, CAP, APPROVAL_THRESHOLD);
         vm.prank(owner);
         otherVault.setVendor(VENDOR_ID, payee);
         usdc.mint(address(otherVault), 1_000_000_000);
@@ -105,6 +138,14 @@ contract ObligationVaultTest is TestBase {
         bytes memory signature = _signWitness(attestation);
         vm.chainId(block.chainid + 1);
         vm.expectPartialRevert(ObligationVault.ChainIdMismatch.selector);
+        vault.release(attestation, signature, "");
+    }
+
+    function testCrossBusinessReplayFailsEvenWithValidWitnessSignature() public {
+        ObligationVault.WitnessAttestation memory attestation = _attestation(125_000_000);
+        attestation.businessIdHash = keccak256("biz_other");
+        bytes memory signature = _signWitness(attestation);
+        vm.expectPartialRevert(ObligationVault.BusinessIdMismatch.selector);
         vault.release(attestation, signature, "");
     }
 
@@ -183,13 +224,13 @@ contract ObligationVaultTest is TestBase {
         return ObligationVault.WitnessAttestation({
             obligationId: keccak256("obl_1042"),
             operationId: keccak256("op_1042_release_1"),
-            businessIdHash: keccak256("biz_demo"),
+            businessIdHash: BUSINESS_ID,
             vendorIdHash: VENDOR_ID,
             payee: payee,
             token: address(usdc),
             amount: amount,
             evidenceRoot: keccak256("evidence_root"),
-            receiptHash: keccak256("receipt_hash"),
+            decisionCommitmentHash: keccak256("decision_commitment"),
             vendorVersion: 1,
             policyVersion: 1,
             witnessVersion: 1,

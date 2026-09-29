@@ -25,7 +25,7 @@ export interface AuthorizationPaymentMeaning {
   payee: Address;
   token: Address;
   amountMinor: string;
-  receiptHash: Hex;
+  decisionCommitmentHash: Hex;
   validUntilUnix: string;
   chainId: number;
   verifyingContract: Address;
@@ -76,7 +76,7 @@ export class WitnessAuthorizationService {
       token: meaning.token,
       amountMinor: meaning.amountMinor,
       evidenceRoot: witness.evidenceRoot,
-      receiptHash: meaning.receiptHash,
+      decisionCommitmentHash: meaning.decisionCommitmentHash,
       vendorVersion: witness.vendorVersion,
       policyVersion: witness.policyVersion,
       witnessVersion: meaning.witnessVersion,
@@ -140,4 +140,3 @@ function hashIdentifier(value: string): Hex {
   if (!value.trim()) throw new Error("Authorization identifiers cannot be empty");
   return keccak256(stringToHex(value));
 }
-

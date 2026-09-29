@@ -35,6 +35,9 @@ importers:
       '@euthyna/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@euthyna/evidence':
+        specifier: workspace:*
+        version: link:../../packages/evidence
       '@euthyna/planner':
         specifier: workspace:*
         version: link:../../packages/planner

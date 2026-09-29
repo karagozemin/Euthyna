@@ -21,6 +21,7 @@ export interface StoredAuthorization {
   id: string;
   operationId: string;
   obligationId: string;
+  decisionCommitmentHash: string;
   attestationHash: string;
   payload: unknown;
   createdAt: string;
@@ -174,7 +175,7 @@ export class RepositoryTransaction {
 
   saveReceipt(receipt: DecisionReceipt): void {
     const existing = this.state.receipts.get(receipt.receiptId);
-    if (existing && existing.receiptHash !== receipt.receiptHash) throw new Error("Decision receipt is immutable");
+    if (existing && existing.finalReceiptHash !== receipt.finalReceiptHash) throw new Error("Decision receipt is immutable");
     this.state.receipts.set(receipt.receiptId, structuredClone(receipt));
   }
 

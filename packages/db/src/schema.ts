@@ -254,6 +254,7 @@ export const attestations = pgTable(
     intentId: id("intent_id").references(() => paymentIntents.id).notNull(),
     operationId: text("operation_id").notNull(),
     typedDataHash: text("typed_data_hash").notNull(),
+    decisionCommitmentHash: text("decision_commitment_hash").notNull(),
     validUntil: timestamp("valid_until", { withTimezone: true, mode: "string" }).notNull(),
     witnessSignature: text("witness_signature").notNull(),
     signerVersion: text("signer_version").notNull(),
@@ -283,7 +284,9 @@ export const settlements = pgTable(
     finalizedAt: timestamp("finalized_at", { withTimezone: true, mode: "string" }),
     blockNumber: numeric("block_number", { precision: 78, scale: 0, mode: "string" }),
     status: settlementStatusEnum("status").notNull(),
-    receiptHash: text("receipt_hash").notNull(),
+    decisionCommitmentHash: text("decision_commitment_hash").notNull(),
+    attestationHash: text("attestation_hash").notNull(),
+    finalReceiptHash: text("final_receipt_hash"),
     createdAt: createdAt(),
   },
   (table) => [
