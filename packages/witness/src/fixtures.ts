@@ -3,6 +3,7 @@ import type {
   KnownObligation,
   Obligation,
   Vendor,
+  VendorDestination,
   WitnessPolicy,
 } from "@euthyna/domain";
 import { lineItemFingerprint, obligationFingerprint } from "@euthyna/evidence";
@@ -25,6 +26,7 @@ export const validObligation: Obligation = {
   dueDate: "2026-09-30",
   requestedPayoutDestination: DESTINATION,
   partialPaymentAllowed: false,
+  revisionOfObligationId: null,
   status: "EVIDENCE_PENDING",
   lineItems: items,
   settledTxHash: null,
@@ -37,8 +39,19 @@ export const validVendor: Vendor = {
   normalizedName: "ACME DESIGN LTD",
   status: "ACTIVE",
   currentVersion: 3,
-  currentDestination: DESTINATION,
-  destinationVerifiedAt: "2026-09-20T09:00:00.000Z",
+};
+
+export const validDestination: VendorDestination = {
+  vendorId: "vendor_acme",
+  version: 3,
+  chain: "ARC_TESTNET",
+  address: DESTINATION,
+  status: "VERIFIED",
+  changeKind: "INITIAL_ONBOARDING",
+  verificationMethod: "OWNER_OUT_OF_BAND",
+  approvedBy: "owner_demo",
+  approvedAt: "2026-09-20T09:00:00.000Z",
+  firstSeenAt: "2026-09-20T08:00:00.000Z",
 };
 
 function artifact(
@@ -52,7 +65,14 @@ function artifact(
     businessId: "biz_demo",
     type,
     source: { channel: "UPLOAD", uri: `private://${id}` },
+    issuer: { id: "vendor_acme", name: "Acme Design Ltd" },
+    receivedAt: "2026-09-28T10:00:00.000Z",
     contentHash: `sha256:${suffix.repeat(64).slice(0, 64)}`,
+    normalizedContentHash: `sha256:${suffix.repeat(64).slice(0, 64)}`,
+    rawArtifactHash: `sha256:${suffix.toUpperCase().repeat(64).slice(0, 64)}`,
+    relevantIdentifiers: { agreementReference: "SOW-2026-09" },
+    relationships: [{ relation: "GOVERNED_BY", targetType: "AGREEMENT", targetId: "SOW-2026-09" }],
+    provenanceMetadata: { fixture: true },
     mimeType: "application/json",
     parser: { name: "structured-demo", version: "1.0.0" },
     ingestedAt: "2026-09-28T10:00:00.000Z",
@@ -116,6 +136,7 @@ export function makeValidInput(): WitnessInput {
   return {
     obligation: structuredClone(validObligation),
     vendor: structuredClone(validVendor),
+    vendorDestination: structuredClone(validDestination),
     artifacts: structuredClone(validArtifacts),
     knownObligations: [],
     policy: structuredClone(validPolicy),
@@ -132,6 +153,8 @@ export function knownFrom(
     id: "obl_existing",
     businessId: obligation.businessId,
     vendorId: obligation.vendorId,
+    invoiceNumber: obligation.invoiceNumber,
+    invoiceDate: obligation.invoiceDate,
     fingerprint: obligationFingerprint(obligation),
     amountMinor: obligation.amountMinor,
     currency: obligation.currency,

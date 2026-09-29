@@ -88,6 +88,14 @@ export function evidenceRoot(
       id: artifact.id,
       type: artifact.type,
       contentHash: artifact.contentHash.toLowerCase(),
+      normalizedContentHash: artifact.normalizedContentHash.toLowerCase(),
+      rawArtifactHash: artifact.rawArtifactHash.toLowerCase(),
+      sourceChannel: artifact.source.channel,
+      issuer: artifact.issuer,
+      receivedAt: artifact.receivedAt,
+      relevantIdentifiers: artifact.relevantIdentifiers,
+      relationships: artifact.relationships,
+      provenanceMetadata: artifact.provenanceMetadata,
       parser: artifact.parser,
     }))
     .sort((left, right) => left.id.localeCompare(right.id));

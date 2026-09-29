@@ -80,7 +80,20 @@ export const EvidenceArtifactSchema = z.object({
     channel: SourceChannelSchema,
     uri: z.string().min(1),
   }),
+  issuer: z.object({ id: z.string().nullable(), name: z.string().nullable() }),
+  receivedAt: IsoDateTimeSchema,
   contentHash: z.string().regex(/^(sha256:|keccak256:)[0-9a-fA-F]{64}$/),
+  normalizedContentHash: z.string().regex(/^(sha256:|keccak256:)[0-9a-fA-F]{64}$/),
+  rawArtifactHash: z.string().regex(/^(sha256:|keccak256:)[0-9a-fA-F]{64}$/),
+  relevantIdentifiers: z.record(z.string()),
+  relationships: z.array(
+    z.object({
+      relation: z.enum(["INVOICE_FOR", "GOVERNED_BY", "FULFILLS", "IDENTIFIES", "INSTRUCTS_PAYMENT"]),
+      targetType: z.string().min(1),
+      targetId: z.string().min(1),
+    }),
+  ),
+  provenanceMetadata: z.record(z.unknown()),
   mimeType: z.string().min(1),
   parser: z.object({ name: z.string().min(1), version: z.string().min(1) }),
   ingestedAt: IsoDateTimeSchema,
@@ -95,12 +108,24 @@ export const VendorSchema = z.object({
   businessId: IdentifierSchema,
   legalName: z.string().min(1).max(500),
   normalizedName: z.string().min(1).max(500),
-  status: z.enum(["ACTIVE", "PENDING_CHANGE", "SUSPENDED"]),
-  currentVersion: z.number().int().positive(),
-  currentDestination: AddressSchema,
-  destinationVerifiedAt: IsoDateTimeSchema,
+  status: z.enum(["PENDING_ONBOARDING", "ACTIVE", "PENDING_CHANGE", "SUSPENDED"]),
+  currentVersion: z.number().int().min(0),
 });
 export type Vendor = z.infer<typeof VendorSchema>;
+
+export const VendorDestinationSchema = z.object({
+  vendorId: IdentifierSchema,
+  version: z.number().int().positive(),
+  chain: z.string().min(1),
+  address: AddressSchema,
+  status: z.enum(["PROPOSED", "VERIFIED", "SUPERSEDED"]),
+  changeKind: z.enum(["INITIAL_ONBOARDING", "DESTINATION_CHANGE"]),
+  verificationMethod: z.string().min(1).nullable(),
+  approvedBy: IdentifierSchema.nullable(),
+  approvedAt: IsoDateTimeSchema.nullable(),
+  firstSeenAt: IsoDateTimeSchema,
+});
+export type VendorDestination = z.infer<typeof VendorDestinationSchema>;
 
 export const ObligationStatusSchema = z.enum([
   "INGESTED",
@@ -128,6 +153,7 @@ export const ObligationSchema = z.object({
   dueDate: IsoDateSchema,
   requestedPayoutDestination: AddressSchema,
   partialPaymentAllowed: z.boolean().default(false),
+  revisionOfObligationId: IdentifierSchema.nullable().default(null),
   status: ObligationStatusSchema,
   lineItems: z.array(LineItemSchema).default([]),
   settledTxHash: Hex32Schema.nullable().default(null),
@@ -138,6 +164,8 @@ export const KnownObligationSchema = z.object({
   id: IdentifierSchema,
   businessId: IdentifierSchema,
   vendorId: IdentifierSchema,
+  invoiceNumber: z.string().min(1),
+  invoiceDate: IsoDateSchema,
   fingerprint: Hex32Schema,
   amountMinor: MinorUnitStringSchema,
   currency: CurrencySchema,
@@ -158,6 +186,7 @@ export const WitnessReasonCodeSchema = z.enum([
   "DELIVERY_UNVERIFIED",
   "DUPLICATE_OBLIGATION",
   "DESTINATION_CHANGED",
+  "DESTINATION_UNVERIFIED",
   "ALREADY_SETTLED",
   "STALE_EVIDENCE",
   "AMBIGUOUS_FIELD",
@@ -202,7 +231,7 @@ export const WitnessResultSchema = z.object({
   obligationId: IdentifierSchema,
   verdict: z.enum(["VERIFIED", "HOLD", "REJECT"]),
   reasonCode: WitnessReasonCodeSchema.nullable(),
-  vendorVersion: z.number().int().positive(),
+  vendorVersion: z.number().int().min(0),
   policyVersion: z.number().int().positive(),
   evidenceRoot: Hex32Schema,
   checks: z.array(WitnessCheckSchema).length(10),
@@ -329,6 +358,7 @@ export type PlanValidationResult = z.infer<typeof PlanValidationResultSchema>;
 
 export const WitnessAttestationSchema = z.object({
   obligationId: Hex32Schema,
+  operationId: Hex32Schema,
   businessIdHash: Hex32Schema,
   vendorIdHash: Hex32Schema,
   payee: AddressSchema,
@@ -338,7 +368,11 @@ export const WitnessAttestationSchema = z.object({
   receiptHash: Hex32Schema,
   vendorVersion: z.number().int().positive(),
   policyVersion: z.number().int().positive(),
+  witnessVersion: z.number().int().positive(),
+  rulesVersion: z.number().int().positive(),
   validUntilUnix: MinorUnitStringSchema,
+  chainId: MinorUnitStringSchema,
+  verifyingContract: AddressSchema,
 });
 export type WitnessAttestation = z.infer<typeof WitnessAttestationSchema>;
 

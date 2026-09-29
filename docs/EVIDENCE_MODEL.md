@@ -2,6 +2,8 @@
 
 The Evidence Witness establishes business truth; it does not make liquidity decisions and does not hold funds.
 
+Vendor identity and payout destination are separate records. A vendor begins in `PENDING_ONBOARDING`; its first address remains proposed until explicit verification. Once a verified destination exists, an unseen address creates a `DESTINATION_CHANGE`, preserves the old verified record, and places the vendor and affected obligations on HOLD.
+
 ## Authority by class
 
 - An invoice is a commercial claim and is never sufficient alone.
@@ -17,5 +19,4 @@ The Evidence Witness establishes business truth; it does not make liquidity deci
 
 Model extraction is nullable and includes provenance. Missing or ambiguous required payment fields produce W10 `AMBIGUOUS_FIELD`; the verifier never guesses. Duplicate identity combines artifact hashes, the canonical business/vendor/invoice/date/amount/currency fingerprint, near-duplicate line-item evidence, and prior settlement state.
 
-The evidence root commits to sorted artifact identifiers, types, content hashes, parser versions, and all deterministic check results. Raw source documents remain off-chain.
-
+The evidence root commits to sorted artifact identifiers, types, issuer, receipt time, raw and normalized hashes, relevant identifiers, relationships, provenance metadata, parser versions, and all deterministic check results. Raw source documents remain off-chain.

@@ -65,6 +65,45 @@ describe("Evidence Witness W01-W10", () => {
     expect(result.reasonCode).toBe("DUPLICATE_OBLIGATION");
   });
 
+  it("W06 REJECT: formatting changes do not change invoice identity", () => {
+    const result = resultFor((input) => {
+      input.knownObligations.push(knownFrom({ ...input.obligation, invoiceNumber: "inv 1042" }, [], { artifactHashes: [] }));
+    });
+    expect(result.verdict).toBe("REJECT");
+    expect(result.reasonCode).toBe("DUPLICATE_OBLIGATION");
+  });
+
+  it("W06 HOLD: same vendor, invoice number, and amount with a changed invoice date", () => {
+    const result = resultFor((input) => {
+      input.knownObligations.push(knownFrom({ ...input.obligation, invoiceDate: "2026-09-24" }, [], { artifactHashes: [] }));
+    });
+    expect(result.verdict).toBe("HOLD");
+    expect(result.checks.find((check) => check.id === "W06")?.observed).toMatchObject({
+      match: "VENDOR_INVOICE_NUMBER_AMOUNT",
+    });
+  });
+
+  it("allows a legitimate recurring invoice with a different invoice number and period", () => {
+    const result = resultFor((input) => {
+      input.obligation.invoiceNumber = "INV-1043";
+      input.obligation.invoiceDate = "2026-10-25";
+      input.obligation.dueDate = "2026-10-30";
+      input.obligation.lineItems = [];
+      input.artifacts.forEach((artifact) => { artifact.fields.lineItems = []; });
+      input.knownObligations.push(knownFrom({ ...input.obligation, invoiceNumber: "INV-1042", invoiceDate: "2026-09-25", dueDate: "2026-09-30" }, [], { artifactHashes: [], lineItemCount: 0 }));
+    });
+    expect(result.checks.find((check) => check.id === "W06")?.status).toBe("PASS");
+  });
+
+  it("allows an explicit corrected invoice linked to a rejected original", () => {
+    const result = resultFor((input) => {
+      input.obligation.invoiceDate = "2026-09-26";
+      input.obligation.revisionOfObligationId = "obl_existing";
+      input.knownObligations.push(knownFrom({ ...input.obligation, revisionOfObligationId: null, invoiceDate: "2026-09-25" }, [], { status: "REJECTED", artifactHashes: [] }));
+    });
+    expect(result.checks.find((check) => check.id === "W06")?.status).toBe("PASS");
+  });
+
   it("W06 HOLD: near duplicate with changed invoice number", () => {
     const result = resultFor((input) => {
       const known = knownFrom(
@@ -86,6 +125,17 @@ describe("Evidence Witness W01-W10", () => {
     expect(result.verdict).toBe("HOLD");
     expect(result.reasonCode).toBe("DESTINATION_CHANGED");
     expect(result.requiredAction).toBe("OWNER_REVERIFY_VENDOR_DESTINATION");
+  });
+
+  it("W07 HOLD: distinguishes initial onboarding from an unauthorized change", () => {
+    const result = resultFor((input) => {
+      input.vendor.status = "PENDING_ONBOARDING";
+      input.vendor.currentVersion = 0;
+      input.vendorDestination = null;
+    });
+    expect(result.verdict).toBe("HOLD");
+    expect(result.reasonCode).toBe("DESTINATION_UNVERIFIED");
+    expect(result.requiredAction).toBe("OWNER_VERIFY_INITIAL_VENDOR_DESTINATION");
   });
 
   it("W08 REJECT: obligation already settled on-chain", () => {

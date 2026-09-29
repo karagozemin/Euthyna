@@ -3,8 +3,8 @@
 
 CREATE TYPE classification AS ENUM ('REAL', 'TEST');
 CREATE TYPE environment AS ENUM ('LOCAL', 'ARC_TESTNET', 'ARC_MAINNET');
-CREATE TYPE vendor_status AS ENUM ('ACTIVE', 'PENDING_CHANGE', 'SUSPENDED');
-CREATE TYPE destination_status AS ENUM ('VERIFIED', 'SUPERSEDED', 'PENDING');
+CREATE TYPE vendor_status AS ENUM ('PENDING_ONBOARDING', 'ACTIVE', 'PENDING_CHANGE', 'SUSPENDED');
+CREATE TYPE destination_status AS ENUM ('PROPOSED', 'VERIFIED', 'SUPERSEDED');
 CREATE TYPE evidence_type AS ENUM ('INVOICE', 'AGREEMENT', 'DELIVERY', 'VENDOR_IDENTITY', 'PAYMENT_INSTRUCTION', 'HUMAN_ATTESTATION', 'CREDIT_NOTE');
 CREATE TYPE obligation_status AS ENUM ('INGESTED', 'NORMALIZED', 'EVIDENCE_PENDING', 'VERIFIED', 'HOLD', 'REJECTED', 'PLANNED', 'AUTHORIZED', 'SUBMITTED', 'SETTLED');
 CREATE TYPE witness_verdict AS ENUM ('VERIFIED', 'HOLD', 'REJECT');
@@ -30,11 +30,15 @@ CREATE INDEX vendors_business_idx ON vendors(business_id);
 CREATE TABLE vendor_destinations (
   vendor_id text NOT NULL REFERENCES vendors(id), version bigint NOT NULL CHECK (version > 0), chain text NOT NULL,
   address text NOT NULL, verification_method text NOT NULL, approved_by text NOT NULL, approved_at timestamptz NOT NULL,
-  status destination_status NOT NULL, PRIMARY KEY(vendor_id, version), UNIQUE(vendor_id, version, address)
+  status destination_status NOT NULL, change_kind text NOT NULL, first_seen_at timestamptz NOT NULL,
+  PRIMARY KEY(vendor_id, version), UNIQUE(vendor_id, version, address)
 );
 CREATE TABLE evidence_artifacts (
   id text PRIMARY KEY, business_id text NOT NULL REFERENCES businesses(id), type evidence_type NOT NULL,
-  source_uri text NOT NULL, source_channel text NOT NULL, content_hash text NOT NULL, mime_type text NOT NULL,
+  source_uri text NOT NULL, source_channel text NOT NULL, issuer_id text, issuer_name text, received_at timestamptz NOT NULL,
+  content_hash text NOT NULL, normalized_content_hash text NOT NULL, raw_artifact_hash text NOT NULL,
+  relevant_identifiers_json jsonb NOT NULL, relationships_json jsonb NOT NULL, provenance_metadata_json jsonb NOT NULL,
+  mime_type text NOT NULL,
   parser_name text NOT NULL, parser_version text NOT NULL, extracted_json jsonb NOT NULL, provenance_json jsonb NOT NULL,
   ingested_at timestamptz NOT NULL, valid_until timestamptz, created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE(business_id, content_hash)
@@ -45,7 +49,7 @@ CREATE TABLE obligations (
   invoice_key text NOT NULL, invoice_number text NOT NULL, invoice_date date NOT NULL, agreement_reference text NOT NULL,
   amount_minor numeric(78,0) NOT NULL CHECK (amount_minor > 0), currency text NOT NULL,
   token_decimals integer NOT NULL CHECK (token_decimals BETWEEN 0 AND 36), issue_date date NOT NULL, due_date date NOT NULL,
-  requested_payout text NOT NULL, partial_payment_allowed boolean NOT NULL DEFAULT false,
+  requested_payout text NOT NULL, partial_payment_allowed boolean NOT NULL DEFAULT false, revision_of_obligation_id text,
   status obligation_status NOT NULL, classification classification NOT NULL, settled_tx text,
   created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(business_id, invoice_key)
 );
@@ -75,9 +79,11 @@ CREATE TABLE payment_intents (
   created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(plan_id, obligation_id)
 );
 CREATE TABLE attestations (
-  id text PRIMARY KEY, intent_id text NOT NULL UNIQUE REFERENCES payment_intents(id), typed_data_hash text NOT NULL,
+  id text PRIMARY KEY, intent_id text NOT NULL UNIQUE REFERENCES payment_intents(id), operation_id text NOT NULL UNIQUE,
+  typed_data_hash text NOT NULL,
   valid_until timestamptz NOT NULL, witness_signature text NOT NULL, signer_version text NOT NULL,
-  vendor_version bigint NOT NULL, policy_version bigint NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
+  vendor_version bigint NOT NULL, policy_version bigint NOT NULL, witness_version bigint NOT NULL, rules_version bigint NOT NULL,
+  chain_id bigint NOT NULL, verifying_contract text NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE settlements (
   id text PRIMARY KEY, intent_id text NOT NULL UNIQUE REFERENCES payment_intents(id), chain_id bigint NOT NULL,
@@ -107,4 +113,3 @@ CREATE TRIGGER witness_runs_append_only BEFORE UPDATE OR DELETE ON witness_runs
   FOR EACH ROW EXECUTE FUNCTION reject_immutable_mutation();
 CREATE TRIGGER attestations_append_only BEFORE UPDATE OR DELETE ON attestations
   FOR EACH ROW EXECUTE FUNCTION reject_immutable_mutation();
-

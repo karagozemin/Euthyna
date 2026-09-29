@@ -2,6 +2,7 @@ import {
   EvidenceArtifactSchema,
   KnownObligationSchema,
   ObligationSchema,
+  VendorDestinationSchema,
   VendorSchema,
   WitnessPolicySchema,
   WitnessResultSchema,
@@ -10,6 +11,7 @@ import {
   type KnownObligation,
   type Obligation,
   type Vendor,
+  type VendorDestination,
   type WitnessCheck,
   type WitnessCheckId,
   type WitnessPolicy,
@@ -28,6 +30,7 @@ import { z } from "zod";
 const WitnessInputSchema = z.object({
   obligation: ObligationSchema,
   vendor: VendorSchema,
+  vendorDestination: VendorDestinationSchema.nullable(),
   artifacts: z.array(EvidenceArtifactSchema),
   knownObligations: z.array(KnownObligationSchema),
   policy: WitnessPolicySchema,
@@ -37,6 +40,7 @@ const WitnessInputSchema = z.object({
 export interface WitnessInput {
   obligation: Obligation;
   vendor: Vendor;
+  vendorDestination: VendorDestination | null;
   artifacts: EvidenceArtifact[];
   knownObligations: KnownObligation[];
   policy: WitnessPolicy;
@@ -64,6 +68,7 @@ const REQUIRED_ACTION: Record<WitnessReasonCode, string> = {
   DELIVERY_UNVERIFIED: "PROVIDE_DELIVERY_ACCEPTANCE",
   DUPLICATE_OBLIGATION: "REVIEW_ORIGINAL_OBLIGATION",
   DESTINATION_CHANGED: "OWNER_REVERIFY_VENDOR_DESTINATION",
+  DESTINATION_UNVERIFIED: "OWNER_VERIFY_INITIAL_VENDOR_DESTINATION",
   ALREADY_SETTLED: "REVIEW_ORIGINAL_SETTLEMENT",
   STALE_EVIDENCE: "REFRESH_EVIDENCE",
   AMBIGUOUS_FIELD: "RESOLVE_REQUIRED_FIELDS",
@@ -275,10 +280,31 @@ function checkW06(
     );
   }
 
+  const sameInvoiceIdentity = known.find(
+    (candidate) =>
+      candidate.id !== obligation.id &&
+      candidate.businessId === obligation.businessId &&
+      candidate.vendorId === obligation.vendorId &&
+      normalizeIdentifier(candidate.invoiceNumber) === normalizeIdentifier(obligation.invoiceNumber) &&
+      candidate.amountMinor === obligation.amountMinor &&
+      candidate.currency === obligation.currency &&
+      !(obligation.revisionOfObligationId === candidate.id && candidate.status === "REJECTED"),
+  );
+  if (sameInvoiceIdentity) {
+    return fail(
+      "W06",
+      "HOLD",
+      "DUPLICATE_OBLIGATION",
+      { uniqueInvoiceIdentity: true },
+      { matchedObligationId: sameInvoiceIdentity.id, match: "VENDOR_INVOICE_NUMBER_AMOUNT" },
+    );
+  }
+
   const itemFingerprint = lineItemFingerprint(obligation.lineItems);
   const near = known.find(
     (candidate) =>
       candidate.id !== obligation.id &&
+      !(obligation.revisionOfObligationId === candidate.id && candidate.status === "REJECTED") &&
       obligation.lineItems.length > 0 &&
       candidate.lineItemCount > 0 &&
       candidate.businessId === obligation.businessId &&
@@ -302,6 +328,7 @@ function checkW06(
 function checkW07(
   obligation: Obligation,
   vendor: Vendor,
+  destination: VendorDestination | null,
   artifacts: EvidenceArtifact[],
 ): WitnessCheck {
   const instructionArtifacts = artifacts.filter((artifact) =>
@@ -310,7 +337,22 @@ function checkW07(
   const observedDestinations = instructionArtifacts
     .map((artifact) => artifact.fields.payoutDestination)
     .filter((value): value is string => value !== null);
-  const expected = normalizeAddress(vendor.currentDestination);
+  if (destination === null || vendor.status === "PENDING_ONBOARDING" || destination.status !== "VERIFIED") {
+    return fail(
+      "W07",
+      "HOLD",
+      "DESTINATION_UNVERIFIED",
+      { verifiedDestinationRequired: true },
+      {
+        requestedDestination: obligation.requestedPayoutDestination,
+        vendorStatus: vendor.status,
+        proposedDestination: destination?.address ?? null,
+        changeKind: destination?.changeKind ?? "INITIAL_ONBOARDING",
+      },
+      instructionArtifacts.map((artifact) => artifact.id),
+    );
+  }
+  const expected = normalizeAddress(destination.address);
   const changed =
     vendor.status !== "ACTIVE" ||
     normalizeAddress(obligation.requestedPayoutDestination) !== expected ||
@@ -320,7 +362,7 @@ function checkW07(
         "W07",
         "HOLD",
         "DESTINATION_CHANGED",
-        { destination: vendor.currentDestination, vendorVersion: vendor.currentVersion, status: "ACTIVE" },
+        { destination: destination.address, vendorVersion: destination.version, status: "ACTIVE" },
         {
           requestedDestination: obligation.requestedPayoutDestination,
           evidenceDestinations: observedDestinations,
@@ -440,7 +482,7 @@ export function verifyObligation(rawInput: WitnessInput): WitnessResult {
     checkW04(obligation, artifacts, evaluatedAt),
     checkW05(obligation, artifacts),
     checkW06(obligation, artifacts, knownObligations),
-    checkW07(obligation, vendor, artifacts),
+    checkW07(obligation, vendor, input.vendorDestination, artifacts),
     checkW08(obligation, knownObligations),
     checkW09(artifacts, policy, evaluatedAt),
     checkW10(obligation, artifacts),

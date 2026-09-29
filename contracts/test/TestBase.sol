@@ -7,8 +7,10 @@ interface Vm {
     function prank(address sender) external;
     function expectRevert(bytes4 revertData) external;
     function expectRevert(bytes calldata revertData) external;
+    function expectRevert() external;
     function expectPartialRevert(bytes4 revertData) external;
     function warp(uint256 timestamp) external;
+    function chainId(uint256 newChainId) external;
 }
 
 abstract contract TestBase {

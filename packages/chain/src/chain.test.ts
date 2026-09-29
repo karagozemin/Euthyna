@@ -8,6 +8,7 @@ import { RpcExecutionSimulator } from "./simulator.js";
 const vault = "0x1111111111111111111111111111111111111111";
 const attestation: WitnessAttestation = {
   obligationId: `0x${"1".repeat(64)}`,
+  operationId: `0x${"6".repeat(64)}`,
   businessIdHash: `0x${"2".repeat(64)}`,
   vendorIdHash: `0x${"3".repeat(64)}`,
   payee: "0x2222222222222222222222222222222222222222",
@@ -17,7 +18,11 @@ const attestation: WitnessAttestation = {
   receiptHash: `0x${"5".repeat(64)}`,
   vendorVersion: 3,
   policyVersion: 5,
+  witnessVersion: 2,
+  rulesVersion: 4,
   validUntilUnix: "1800000600",
+  chainId: "5042002",
+  verifyingContract: vault,
 };
 
 describe("Arc authorization adapter", () => {

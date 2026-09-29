@@ -5,8 +5,8 @@
 1. A model recommendation cannot create evidence truth.
 2. Only a `VERIFIED` obligation may enter an executable plan.
 3. The plan validator cannot increase an amount, change a payee, breach reserve, or skip required approval.
-4. A witness attestation binds the exact obligation, business, vendor, payee, token, amount, evidence root, receipt hash, vendor version, policy version, and expiry.
-5. `ObligationVault` releases an obligation ID at most once.
+4. A witness attestation binds the exact obligation, operation, business, vendor, payee, token, amount, evidence root, receipt hash, vendor/policy/witness/rules versions, expiry, chain, and vault.
+5. `ObligationVault` releases an obligation ID at most once and accepts an operation ID at most once.
 6. A destination or policy change invalidates stale attestations.
 7. Ambiguity and integration failure fail closed.
 
@@ -27,4 +27,3 @@
 ## Residual MVP risk
 
 The witness signer is a high-trust service. Mitigations are short expiry, rotation, pause, low vault balances/caps, and append-only monitoring. Quorum witnesses and hardware-backed isolation are post-MVP work.
-

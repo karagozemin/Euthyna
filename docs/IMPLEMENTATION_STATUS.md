@@ -18,13 +18,17 @@ The authoritative product specification is `Euthyna_Full_PRD_Tameion_2026.docx`.
 | --- | --- | --- | --- |
 | 1 | Workspace and canonical schemas | FR-001–005, NFR money rules | Implemented |
 | 2 | Evidence fingerprints, roots, W01–W10 | FR-003–008, AC-03–06 | Implemented; persistence pending |
-| 3 | Database, audit events, orchestration API | §§18–19, FR-013–016 | Schema/audit implemented; API not started |
+| 3 | Database, audit events, orchestration API | §§18–19, FR-013–016 | Schema, transactional local repository, audit, and route surface implemented |
 | 4 | Decision Agent and plan validator | FR-009–010, AC-07–08 | Implemented baseline |
 | 5 | Attestation and `ObligationVault` | FR-011–012, AC-09–10 | Implemented baseline |
-| 6 | Arc/Circle execution and reconciliation | §13, AC-11 | Adapter in progress; live execution blocked on environment configuration |
+| 6 | Arc/Circle execution and reconciliation | §13, AC-11 | Circle adapter + local end-to-end reconciliation implemented; live execution blocked on environment configuration |
 | 7 | Canonical decision receipt | §22, AC-12 | Implemented baseline |
 | 8 | Reviewer dashboard and four scenarios | §§20, 26, AC-13–14 | Not started |
 | 9 | Full invariant/adversarial/deployment pass | §27, AC-15–18 | Not started |
+
+## Normative execution order
+
+Evidence Intake → Normalization → Evidence Witness → VERIFIED Obligations → Decision Agent → Deterministic Plan Validator → Witness Authorization → ObligationVault → Preflight/Simulation → Circle Signing → Arc Broadcast/Reconciliation → Decision Receipt.
 
 ## Known external inputs
 

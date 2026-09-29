@@ -19,6 +19,7 @@ export const OBLIGATION_VAULT_ABI = [
         type: "tuple",
         components: [
           { name: "obligationId", type: "bytes32" },
+          { name: "operationId", type: "bytes32" },
           { name: "businessIdHash", type: "bytes32" },
           { name: "vendorIdHash", type: "bytes32" },
           { name: "payee", type: "address" },
@@ -28,7 +29,11 @@ export const OBLIGATION_VAULT_ABI = [
           { name: "receiptHash", type: "bytes32" },
           { name: "vendorVersion", type: "uint64" },
           { name: "policyVersion", type: "uint64" },
+          { name: "witnessVersion", type: "uint64" },
+          { name: "rulesVersion", type: "uint64" },
           { name: "validUntil", type: "uint64" },
+          { name: "chainId", type: "uint256" },
+          { name: "verifyingContract", type: "address" },
         ],
       },
       { name: "witnessSignature", type: "bytes" },
@@ -54,6 +59,7 @@ export const OBLIGATION_VAULT_ABI = [
 export const WITNESS_TYPES = {
   WitnessAttestation: [
     { name: "obligationId", type: "bytes32" },
+    { name: "operationId", type: "bytes32" },
     { name: "businessIdHash", type: "bytes32" },
     { name: "vendorIdHash", type: "bytes32" },
     { name: "payee", type: "address" },
@@ -63,7 +69,11 @@ export const WITNESS_TYPES = {
     { name: "receiptHash", type: "bytes32" },
     { name: "vendorVersion", type: "uint64" },
     { name: "policyVersion", type: "uint64" },
+    { name: "witnessVersion", type: "uint64" },
+    { name: "rulesVersion", type: "uint64" },
     { name: "validUntil", type: "uint64" },
+    { name: "chainId", type: "uint256" },
+    { name: "verifyingContract", type: "address" },
   ],
 } as const;
 
@@ -71,6 +81,7 @@ export function toContractAttestation(raw: WitnessAttestation) {
   const value = WitnessAttestationSchema.parse(raw);
   return {
     obligationId: value.obligationId as Hex,
+    operationId: value.operationId as Hex,
     businessIdHash: value.businessIdHash as Hex,
     vendorIdHash: value.vendorIdHash as Hex,
     payee: value.payee as Address,
@@ -80,7 +91,11 @@ export function toContractAttestation(raw: WitnessAttestation) {
     receiptHash: value.receiptHash as Hex,
     vendorVersion: BigInt(value.vendorVersion),
     policyVersion: BigInt(value.policyVersion),
+    witnessVersion: BigInt(value.witnessVersion),
+    rulesVersion: BigInt(value.rulesVersion),
     validUntil: BigInt(value.validUntilUnix),
+    chainId: BigInt(value.chainId),
+    verifyingContract: value.verifyingContract as Address,
   };
 }
 

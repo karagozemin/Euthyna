@@ -20,8 +20,8 @@
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^8.1.0",
     "@euthyna/domain": "workspace:*",
+    "@euthyna/evidence": "workspace:*",
     "viem": "^2.37.3",
     "zod": "^3.25.76"
   }
 }
-

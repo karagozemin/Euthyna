@@ -1,16 +1,9 @@
 {
-  "name": "@euthyna/db",
+  "name": "@euthyna/api",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -18,8 +11,13 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@euthyna/chain": "workspace:*",
+    "@euthyna/db": "workspace:*",
     "@euthyna/domain": "workspace:*",
-    "@euthyna/evidence": "workspace:*",
-    "drizzle-orm": "^0.44.5"
+    "@euthyna/planner": "workspace:*",
+    "@euthyna/receipts": "workspace:*",
+    "@euthyna/witness": "workspace:*",
+    "fastify": "^5.6.1",
+    "viem": "^2.37.3"
   }
 }

@@ -73,6 +73,60 @@ contract ObligationVaultTest is TestBase {
         vault.release(attestation, signature, "");
     }
 
+    function testChangedAmountAfterSigningInvalidatesSignature() public {
+        ObligationVault.WitnessAttestation memory attestation = _attestation(125_000_000);
+        bytes memory signature = _signWitness(attestation);
+        attestation.amount = 125_000_001;
+        vm.expectRevert();
+        vault.release(attestation, signature, "");
+    }
+
+    function testChangedEvidenceRootAfterSigningInvalidatesSignature() public {
+        ObligationVault.WitnessAttestation memory attestation = _attestation(125_000_000);
+        bytes memory signature = _signWitness(attestation);
+        attestation.evidenceRoot = keccak256("altered_evidence");
+        vm.expectRevert();
+        vault.release(attestation, signature, "");
+    }
+
+    function testCrossVaultReplayFails() public {
+        ObligationVault.WitnessAttestation memory attestation = _attestation(125_000_000);
+        bytes memory signature = _signWitness(attestation);
+        ObligationVault otherVault = new ObligationVault(owner, witness, usdc, CAP, APPROVAL_THRESHOLD);
+        vm.prank(owner);
+        otherVault.setVendor(VENDOR_ID, payee);
+        usdc.mint(address(otherVault), 1_000_000_000);
+        vm.expectPartialRevert(ObligationVault.VerifyingContractMismatch.selector);
+        otherVault.release(attestation, signature, "");
+    }
+
+    function testCrossChainReplayFails() public {
+        ObligationVault.WitnessAttestation memory attestation = _attestation(125_000_000);
+        bytes memory signature = _signWitness(attestation);
+        vm.chainId(block.chainid + 1);
+        vm.expectPartialRevert(ObligationVault.ChainIdMismatch.selector);
+        vault.release(attestation, signature, "");
+    }
+
+    function testStaleWitnessVersionFails() public {
+        ObligationVault.WitnessAttestation memory attestation = _attestation(125_000_000);
+        bytes memory signature = _signWitness(attestation);
+        vm.prank(owner);
+        vault.setWitnessSigner(vm.addr(0xC0DE));
+        vm.expectPartialRevert(ObligationVault.StaleWitnessVersion.selector);
+        vault.release(attestation, signature, "");
+    }
+
+    function testOperationIdCannotBeReused() public {
+        ObligationVault.WitnessAttestation memory first = _attestation(100_000_000);
+        vault.release(first, _signWitness(first), "");
+        ObligationVault.WitnessAttestation memory second = _attestation(100_000_000);
+        second.obligationId = keccak256("different_obligation");
+        bytes memory signature = _signWitness(second);
+        vm.expectPartialRevert(ObligationVault.OperationAlreadyUsed.selector);
+        vault.release(second, signature, "");
+    }
+
     function testExpiredAttestationReverts() public {
         ObligationVault.WitnessAttestation memory attestation = _attestation(125_000_000);
         attestation.validUntil = uint64(block.timestamp - 1);
@@ -101,7 +155,8 @@ contract ObligationVaultTest is TestBase {
         ObligationVault.WitnessAttestation memory attestation = _attestation(600_000_000);
         bytes32 attestationHash = vault.hashAttestation(attestation);
         uint64 deadline = uint64(block.timestamp + 1 hours);
-        bytes memory approval = abi.encode(deadline, _sign(OWNER_KEY, vault.hashOwnerApproval(attestationHash, deadline)));
+        bytes memory approval =
+            abi.encode(deadline, _sign(OWNER_KEY, vault.hashOwnerApproval(attestationHash, deadline)));
         vault.release(attestation, _signWitness(attestation), approval);
         assertEq(usdc.balanceOf(payee), 600_000_000);
     }
@@ -124,13 +179,10 @@ contract ObligationVaultTest is TestBase {
         vault.release(attestation, signature, "");
     }
 
-    function _attestation(uint256 amount)
-        private
-        view
-        returns (ObligationVault.WitnessAttestation memory)
-    {
+    function _attestation(uint256 amount) private view returns (ObligationVault.WitnessAttestation memory) {
         return ObligationVault.WitnessAttestation({
             obligationId: keccak256("obl_1042"),
+            operationId: keccak256("op_1042_release_1"),
             businessIdHash: keccak256("biz_demo"),
             vendorIdHash: VENDOR_ID,
             payee: payee,
@@ -140,14 +192,15 @@ contract ObligationVaultTest is TestBase {
             receiptHash: keccak256("receipt_hash"),
             vendorVersion: 1,
             policyVersion: 1,
-            validUntil: uint64(block.timestamp + 10 minutes)
+            witnessVersion: 1,
+            rulesVersion: 1,
+            validUntil: uint64(block.timestamp + 10 minutes),
+            chainId: block.chainid,
+            verifyingContract: address(vault)
         });
     }
 
-    function _signWitness(ObligationVault.WitnessAttestation memory attestation)
-        private
-        returns (bytes memory)
-    {
+    function _signWitness(ObligationVault.WitnessAttestation memory attestation) private returns (bytes memory) {
         return _sign(WITNESS_KEY, vault.hashAttestation(attestation));
     }
 

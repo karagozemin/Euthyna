@@ -21,8 +21,8 @@ const createdAt = () => timestamp("created_at", { withTimezone: true, mode: "str
 
 export const classificationEnum = pgEnum("classification", ["REAL", "TEST"]);
 export const environmentEnum = pgEnum("environment", ["LOCAL", "ARC_TESTNET", "ARC_MAINNET"]);
-export const vendorStatusEnum = pgEnum("vendor_status", ["ACTIVE", "PENDING_CHANGE", "SUSPENDED"]);
-export const destinationStatusEnum = pgEnum("destination_status", ["VERIFIED", "SUPERSEDED", "PENDING"]);
+export const vendorStatusEnum = pgEnum("vendor_status", ["PENDING_ONBOARDING", "ACTIVE", "PENDING_CHANGE", "SUSPENDED"]);
+export const destinationStatusEnum = pgEnum("destination_status", ["PROPOSED", "VERIFIED", "SUPERSEDED"]);
 export const evidenceTypeEnum = pgEnum("evidence_type", [
   "INVOICE",
   "AGREEMENT",
@@ -113,6 +113,8 @@ export const vendorDestinations = pgTable(
     approvedBy: text("approved_by").notNull(),
     approvedAt: timestamp("approved_at", { withTimezone: true, mode: "string" }).notNull(),
     status: destinationStatusEnum("status").notNull(),
+    changeKind: text("change_kind").notNull(),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true, mode: "string" }).notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.vendorId, table.version] }),
@@ -128,7 +130,15 @@ export const evidenceArtifacts = pgTable(
     type: evidenceTypeEnum("type").notNull(),
     sourceUri: text("source_uri").notNull(),
     sourceChannel: text("source_channel").notNull(),
+    issuerId: text("issuer_id"),
+    issuerName: text("issuer_name"),
+    receivedAt: timestamp("received_at", { withTimezone: true, mode: "string" }).notNull(),
     contentHash: text("content_hash").notNull(),
+    normalizedContentHash: text("normalized_content_hash").notNull(),
+    rawArtifactHash: text("raw_artifact_hash").notNull(),
+    relevantIdentifiersJson: jsonb("relevant_identifiers_json").notNull(),
+    relationshipsJson: jsonb("relationships_json").notNull(),
+    provenanceMetadataJson: jsonb("provenance_metadata_json").notNull(),
     mimeType: text("mime_type").notNull(),
     parserName: text("parser_name").notNull(),
     parserVersion: text("parser_version").notNull(),
@@ -161,6 +171,7 @@ export const obligations = pgTable(
     dueDate: date("due_date", { mode: "string" }).notNull(),
     requestedPayout: text("requested_payout").notNull(),
     partialPaymentAllowed: boolean("partial_payment_allowed").notNull().default(false),
+    revisionOfObligationId: text("revision_of_obligation_id"),
     status: obligationStatusEnum("status").notNull(),
     classification: classificationEnum("classification").notNull(),
     settledTx: text("settled_tx"),
@@ -241,15 +252,23 @@ export const attestations = pgTable(
   {
     id: id("id").primaryKey(),
     intentId: id("intent_id").references(() => paymentIntents.id).notNull(),
+    operationId: text("operation_id").notNull(),
     typedDataHash: text("typed_data_hash").notNull(),
     validUntil: timestamp("valid_until", { withTimezone: true, mode: "string" }).notNull(),
     witnessSignature: text("witness_signature").notNull(),
     signerVersion: text("signer_version").notNull(),
     vendorVersion: bigint("vendor_version", { mode: "number" }).notNull(),
     policyVersion: bigint("policy_version", { mode: "number" }).notNull(),
+    witnessVersion: bigint("witness_version", { mode: "number" }).notNull(),
+    rulesVersion: bigint("rules_version", { mode: "number" }).notNull(),
+    chainId: bigint("chain_id", { mode: "number" }).notNull(),
+    verifyingContract: text("verifying_contract").notNull(),
     createdAt: createdAt(),
   },
-  (table) => [uniqueIndex("attestation_intent_uq").on(table.intentId)],
+  (table) => [
+    uniqueIndex("attestation_intent_uq").on(table.intentId),
+    uniqueIndex("attestation_operation_uq").on(table.operationId),
+  ],
 );
 
 export const settlements = pgTable(
@@ -301,4 +320,3 @@ export const feedbackEvents = pgTable("feedback_events", {
   note: text("note"),
   createdAt: createdAt(),
 });
-
