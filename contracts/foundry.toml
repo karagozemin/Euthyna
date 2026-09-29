@@ -1,0 +1,15 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+cache_path = "cache"
+solc_version = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+libs = ["../node_modules"]
+remappings = ["@openzeppelin/contracts/=../node_modules/@openzeppelin/contracts/"]
+
+[fuzz]
+runs = 256
+
