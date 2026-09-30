@@ -28,7 +28,7 @@ a { color: inherit; }
 button { color: inherit; }
 code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
 
-.app-shell { min-height: 100vh; overflow: hidden; }
+.app-shell { min-height: 100vh; overflow-x: hidden; }
 .site-header {
   position: sticky; top: 0; z-index: 50; height: 72px; padding: 0 clamp(22px, 5vw, 76px);
   display: flex; align-items: center; justify-content: space-between;

@@ -544,7 +544,7 @@ function ScenarioPage({ scenario, focusedId }: { scenario: Scenario; focusedId?:
         <Link className="back-link" to="/demo">← All scenarios</Link>
         <div className="detail-hero-grid">
           <div><span className="scenario-letter">Scenario {scenario.letter}</span><h1>{scenario.title}</h1><p>{scenario.summary}</p></div>
-          <div className="detail-verdict"><Badge tone="test">TEST DATA</Badge><strong>{scenario.outcome}</strong><span>{scenario.moved}</span></div>
+          <div className="detail-verdict"><Badge tone="test">TEST DATA</Badge><strong>{scenario.outcome.replaceAll("_", " ")}</strong><span>{scenario.moved}</span></div>
         </div>
         <ScenarioRunner scenario={scenario} />
       </section>
