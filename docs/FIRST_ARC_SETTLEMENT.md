@@ -28,6 +28,9 @@ The test is successful only when the following sequence completes:
 
 Populate a private, ignored environment file from `.env.example`. Keep the
 fixture identifiers and timestamps unchanged between the crash and retry runs.
+Install [Arc Foundry](https://docs.arc.io/arc/tutorials/install-arc-foundry)
+and ensure `arc-forge` and `arc-cast` are on `PATH`; standard Foundry cannot
+simulate Arc's native-USDC precompile behavior.
 
 ```bash
 source .env.arc-testnet.local

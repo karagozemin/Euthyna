@@ -46,7 +46,10 @@ export interface IssuedWitnessAuthorization {
 }
 
 export class WitnessAuthorizationService {
-  constructor(private readonly signer: WitnessTypedDataSigner) {}
+  constructor(
+    private readonly signer: WitnessTypedDataSigner,
+    private readonly nowUnix: () => bigint = () => BigInt(Math.floor(Date.now() / 1_000)),
+  ) {}
 
   async issue(
     rawWitness: WitnessResult,
@@ -64,7 +67,7 @@ export class WitnessAuthorizationService {
     if (!/^(0|[1-9][0-9]*)$/.test(meaning.amountMinor) || BigInt(meaning.amountMinor) <= 0n) {
       throw new Error("Authorization amount must be a positive integer base-unit string");
     }
-    if (BigInt(meaning.validUntilUnix) <= BigInt(Math.floor(Date.now() / 1_000))) {
+    if (BigInt(meaning.validUntilUnix) <= this.nowUnix()) {
       throw new Error("Witness authorization expiry must be in the future");
     }
     const attestation: WitnessAttestation = {

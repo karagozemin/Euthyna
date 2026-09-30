@@ -117,7 +117,10 @@ describe("local end-to-end proof-of-obligation trust path", () => {
       createdAt: now.toISOString(),
     });
     const signer = new LocalPrivateKeyWitnessSigner(privateKey, chainId, vault);
-    const authorization = await new WitnessAuthorizationService(signer).issue(witness, validation, {
+    const authorization = await new WitnessAuthorizationService(
+      signer,
+      () => BigInt(Math.floor(now.getTime() / 1_000)),
+    ).issue(witness, validation, {
       operationId, businessId: input.obligation.businessId, vendorId: input.obligation.vendorId,
       payee: input.obligation.requestedPayoutDestination as Address, token, amountMinor: input.obligation.amountMinor,
       decisionCommitmentHash: decisionCommitment.decisionCommitmentHash as Hex, validUntilUnix, chainId, verifyingContract: vault,
