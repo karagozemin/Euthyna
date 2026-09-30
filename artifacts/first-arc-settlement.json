@@ -1,0 +1,972 @@
+{
+  "classification": "TEST",
+  "preflight": {
+    "chainId": 5042002,
+    "circleWalletAddress": "0x66d6A96E97b531D7C9603668803B1750cd343eF1",
+    "circleWalletNativeGasBalance": "9992836559210000000",
+    "vaultAddress": "0x61322f6e21ec822cb220b145fb9184265a580b12",
+    "vaultUsdcBalanceMinor": "999000",
+    "requiredUsdcMinor": "1000",
+    "usdcAddress": "0x3600000000000000000000000000000000000000",
+    "usdcDecimals": 6,
+    "vaultBusinessIdHash": "0xdc636f2d2620f74d71336b695e77c781deec1e24ac27320f0b12ecd547ff824b",
+    "witnessSignerAddress": "0x07c0EF3d66F278Ff77663f6739DAA448eE5206af"
+  },
+  "evidencePack": [
+    {
+      "id": "obl_arc_test_001_invoice",
+      "businessId": "euthyna-tameion-test-001",
+      "type": "INVOICE",
+      "source": {
+        "channel": "UPLOAD",
+        "uri": "private://art_invoice"
+      },
+      "issuer": {
+        "id": "vendor_arc_test",
+        "name": "Acme Design Ltd"
+      },
+      "receivedAt": "2026-09-30T18:06:04.226Z",
+      "contentHash": "sha256:f5945a2ce9eeaf7e6eba56084a748ef83d3f8f699c7427ef4fc9af04d68e8b3b",
+      "normalizedContentHash": "sha256:21d0f385491fab96fe857e9af2bc97f28fc9a06dd5f1906ef8030ad78aed0d23",
+      "rawArtifactHash": "sha256:7b20b6b38ce3151e8cf17276d1824f2b42b2b82706005eaa49a440d9d7f628e7",
+      "relevantIdentifiers": {
+        "agreementReference": "SOW-2026-09"
+      },
+      "relationships": [
+        {
+          "relation": "GOVERNED_BY",
+          "targetType": "AGREEMENT",
+          "targetId": "SOW-2026-09"
+        }
+      ],
+      "provenanceMetadata": {
+        "fixture": true,
+        "classification": "TEST",
+        "generatedBy": "first-arc-settlement"
+      },
+      "mimeType": "application/json",
+      "parser": {
+        "name": "structured-demo",
+        "version": "1.0.0"
+      },
+      "ingestedAt": "2026-09-30T18:06:04.226Z",
+      "validUntil": null,
+      "fields": {
+        "vendorId": "vendor_arc_test",
+        "vendorName": "Acme Design Ltd",
+        "invoiceNumber": "TEST-obl_arc_test_001",
+        "issueDate": "2026-09-30",
+        "dueDate": "2026-09-30",
+        "amountMinor": "1000",
+        "currency": "USDC",
+        "tokenDecimals": 6,
+        "agreementReference": "SOW-2026-09",
+        "agreementStatus": null,
+        "agreementStartsOn": null,
+        "agreementEndsOn": null,
+        "deliveryAccepted": null,
+        "payoutDestination": "0x8273b9ca852F95467BD060A9106F0998452f55d3",
+        "lineItems": [
+          {
+            "description": "Euthyna Arc Testnet proof-of-obligation fixture",
+            "amountMinor": "1000",
+            "quantityMinor": "1"
+          }
+        ],
+        "ambiguousFields": []
+      },
+      "fieldProvenance": {}
+    },
+    {
+      "id": "obl_arc_test_001_agreement",
+      "businessId": "euthyna-tameion-test-001",
+      "type": "AGREEMENT",
+      "source": {
+        "channel": "UPLOAD",
+        "uri": "private://art_agreement"
+      },
+      "issuer": {
+        "id": "vendor_arc_test",
+        "name": "Acme Design Ltd"
+      },
+      "receivedAt": "2026-09-30T18:06:04.226Z",
+      "contentHash": "sha256:eae6354dcf56b1ad24701bd8ec71a7cd6afb8e66d5b82759efbcc23a99621a34",
+      "normalizedContentHash": "sha256:806889c7ad9922f79c32168f34089a44e5fc12fdb8723c4193c091158fd5aa6d",
+      "rawArtifactHash": "sha256:8c9a8156eb9bec35dd0c6270f59e16492c083d9dc4076534b0b1eea47f893dff",
+      "relevantIdentifiers": {
+        "agreementReference": "SOW-2026-09"
+      },
+      "relationships": [
+        {
+          "relation": "GOVERNED_BY",
+          "targetType": "AGREEMENT",
+          "targetId": "SOW-2026-09"
+        }
+      ],
+      "provenanceMetadata": {
+        "fixture": true,
+        "classification": "TEST",
+        "generatedBy": "first-arc-settlement"
+      },
+      "mimeType": "application/json",
+      "parser": {
+        "name": "structured-demo",
+        "version": "1.0.0"
+      },
+      "ingestedAt": "2026-09-30T18:06:04.226Z",
+      "validUntil": null,
+      "fields": {
+        "vendorId": "vendor_arc_test",
+        "vendorName": "Acme Design Ltd",
+        "invoiceNumber": null,
+        "issueDate": null,
+        "dueDate": null,
+        "amountMinor": "1000",
+        "currency": "USDC",
+        "tokenDecimals": 6,
+        "agreementReference": "SOW-2026-09",
+        "agreementStatus": "ACTIVE",
+        "agreementStartsOn": "2026-09-29",
+        "agreementEndsOn": "2026-10-30",
+        "deliveryAccepted": null,
+        "payoutDestination": null,
+        "lineItems": [
+          {
+            "description": "Euthyna Arc Testnet proof-of-obligation fixture",
+            "amountMinor": "1000",
+            "quantityMinor": "1"
+          }
+        ],
+        "ambiguousFields": []
+      },
+      "fieldProvenance": {}
+    },
+    {
+      "id": "obl_arc_test_001_delivery",
+      "businessId": "euthyna-tameion-test-001",
+      "type": "DELIVERY",
+      "source": {
+        "channel": "UPLOAD",
+        "uri": "private://art_delivery"
+      },
+      "issuer": {
+        "id": "vendor_arc_test",
+        "name": "Acme Design Ltd"
+      },
+      "receivedAt": "2026-09-30T18:06:04.226Z",
+      "contentHash": "sha256:ff64cff7d2886ed53500f782bcc3adfc9dff56487bd3282a0b27eb1625c02635",
+      "normalizedContentHash": "sha256:c14bc70dd0f1e7b3befd29b3f5fefdf71223dc49d0333f358c298c0ec9d88625",
+      "rawArtifactHash": "sha256:dd844146fb454f1071b78849b6a8e6d5976986a752477537599fd0cad3645996",
+      "relevantIdentifiers": {
+        "agreementReference": "SOW-2026-09"
+      },
+      "relationships": [
+        {
+          "relation": "GOVERNED_BY",
+          "targetType": "AGREEMENT",
+          "targetId": "SOW-2026-09"
+        }
+      ],
+      "provenanceMetadata": {
+        "fixture": true,
+        "classification": "TEST",
+        "generatedBy": "first-arc-settlement"
+      },
+      "mimeType": "application/json",
+      "parser": {
+        "name": "structured-demo",
+        "version": "1.0.0"
+      },
+      "ingestedAt": "2026-09-30T18:06:04.226Z",
+      "validUntil": null,
+      "fields": {
+        "vendorId": "vendor_arc_test",
+        "vendorName": "Acme Design Ltd",
+        "invoiceNumber": null,
+        "issueDate": null,
+        "dueDate": null,
+        "amountMinor": null,
+        "currency": null,
+        "tokenDecimals": null,
+        "agreementReference": "SOW-2026-09",
+        "agreementStatus": null,
+        "agreementStartsOn": null,
+        "agreementEndsOn": null,
+        "deliveryAccepted": true,
+        "payoutDestination": null,
+        "lineItems": [],
+        "ambiguousFields": []
+      },
+      "fieldProvenance": {}
+    }
+  ],
+  "witness": {
+    "obligationId": "obl_arc_test_001",
+    "verdict": "VERIFIED",
+    "reasonCode": null,
+    "vendorVersion": 1,
+    "policyVersion": 1,
+    "evidenceRoot": "0x0358f0605038371dc683a0913ce99a2158866598ce1cf0d94cec84e651b05de4",
+    "checks": [
+      {
+        "id": "W01",
+        "name": "Required evidence classes are present",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": [
+          "obl_arc_test_001_invoice",
+          "obl_arc_test_001_agreement",
+          "obl_arc_test_001_delivery"
+        ]
+      },
+      {
+        "id": "W02",
+        "name": "Vendor identity matches agreement and invoice",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": [
+          "obl_arc_test_001_invoice",
+          "obl_arc_test_001_agreement"
+        ]
+      },
+      {
+        "id": "W03",
+        "name": "Currency and amount match within policy tolerance",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": [
+          "obl_arc_test_001_invoice",
+          "obl_arc_test_001_agreement"
+        ]
+      },
+      {
+        "id": "W04",
+        "name": "Agreement reference is valid and active",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": [
+          "obl_arc_test_001_agreement"
+        ]
+      },
+      {
+        "id": "W05",
+        "name": "Delivery or service acceptance satisfies release condition",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": [
+          "obl_arc_test_001_delivery"
+        ]
+      },
+      {
+        "id": "W06",
+        "name": "Obligation is not a semantic duplicate",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": []
+      },
+      {
+        "id": "W07",
+        "name": "Payout destination matches the current verified destination",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": [
+          "obl_arc_test_001_invoice"
+        ]
+      },
+      {
+        "id": "W08",
+        "name": "Obligation has not already settled",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": []
+      },
+      {
+        "id": "W09",
+        "name": "Evidence timestamps and versions are fresh",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": [
+          "obl_arc_test_001_invoice",
+          "obl_arc_test_001_agreement",
+          "obl_arc_test_001_delivery"
+        ]
+      },
+      {
+        "id": "W10",
+        "name": "Required payment fields are resolved and unambiguous",
+        "status": "PASS",
+        "disposition": "NONE",
+        "reasonCode": null,
+        "expected": null,
+        "observed": null,
+        "relatedArtifactIds": [
+          "obl_arc_test_001_invoice",
+          "obl_arc_test_001_agreement",
+          "obl_arc_test_001_delivery"
+        ]
+      }
+    ],
+    "requiredAction": null,
+    "evaluatedAt": "2026-09-30T18:06:04.226Z"
+  },
+  "plan": {
+    "planId": "plan_fa51c75363ed5504",
+    "businessId": "euthyna-tameion-test-001",
+    "businessStateHash": "0x3288cb5788ea02012dc5eca3319bb4e6ac2d1b87c9d45af920f05dde2a1f549e",
+    "agent": {
+      "provider": "euthyna",
+      "model": "bounded-priority",
+      "version": "1.0.0"
+    },
+    "decisions": [
+      {
+        "obligationId": "obl_arc_test_001",
+        "action": "PAY_NOW",
+        "amountMinor": "1000",
+        "currency": "USDC",
+        "payee": "0x8273b9ca852F95467BD060A9106F0998452f55d3",
+        "scheduledFor": null,
+        "reasonCodes": [
+          "DUE_OR_OVERDUE",
+          "CRITICAL_VENDOR"
+        ],
+        "rationale": "Pay this verified obligation now; its economic priority is higher and the USDC reserve remains intact.",
+        "confidenceBps": 9000
+      }
+    ],
+    "assumptions": [],
+    "createdAt": "2026-09-30T18:06:04.226Z"
+  },
+  "validation": {
+    "valid": true,
+    "projectedImmediateBalanceMinor": "2000",
+    "errors": []
+  },
+  "decisionCommitment": {
+    "commitmentVersion": "1",
+    "receiptId": "receipt_obl_arc_test_001",
+    "businessId": "euthyna-tameion-test-001",
+    "vendorId": "vendor_arc_test",
+    "obligationId": "obl_arc_test_001",
+    "classification": "TEST",
+    "agent": {
+      "planId": "plan_fa51c75363ed5504",
+      "action": "PAY_NOW",
+      "reasonCodes": [
+        "DUE_OR_OVERDUE",
+        "CRITICAL_VENDOR"
+      ],
+      "rationale": "Pay this verified obligation now; its economic priority is higher and the USDC reserve remains intact.",
+      "businessStateHash": "0x3288cb5788ea02012dc5eca3319bb4e6ac2d1b87c9d45af920f05dde2a1f549e",
+      "provider": "euthyna",
+      "model": "bounded-priority",
+      "version": "1.0.0"
+    },
+    "witness": {
+      "verdict": "VERIFIED",
+      "reasonCode": null,
+      "evidenceRoot": "0x0358f0605038371dc683a0913ce99a2158866598ce1cf0d94cec84e651b05de4",
+      "checks": [
+        {
+          "id": "W01",
+          "name": "Required evidence classes are present",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement",
+            "obl_arc_test_001_delivery"
+          ]
+        },
+        {
+          "id": "W02",
+          "name": "Vendor identity matches agreement and invoice",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement"
+          ]
+        },
+        {
+          "id": "W03",
+          "name": "Currency and amount match within policy tolerance",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement"
+          ]
+        },
+        {
+          "id": "W04",
+          "name": "Agreement reference is valid and active",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_agreement"
+          ]
+        },
+        {
+          "id": "W05",
+          "name": "Delivery or service acceptance satisfies release condition",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_delivery"
+          ]
+        },
+        {
+          "id": "W06",
+          "name": "Obligation is not a semantic duplicate",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": []
+        },
+        {
+          "id": "W07",
+          "name": "Payout destination matches the current verified destination",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice"
+          ]
+        },
+        {
+          "id": "W08",
+          "name": "Obligation has not already settled",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": []
+        },
+        {
+          "id": "W09",
+          "name": "Evidence timestamps and versions are fresh",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement",
+            "obl_arc_test_001_delivery"
+          ]
+        },
+        {
+          "id": "W10",
+          "name": "Required payment fields are resolved and unambiguous",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement",
+            "obl_arc_test_001_delivery"
+          ]
+        }
+      ],
+      "vendorVersion": 1
+    },
+    "payment": {
+      "operationId": "op_arc_test_001_release_1",
+      "payee": "0x8273b9ca852F95467BD060A9106F0998452f55d3",
+      "token": "0x3600000000000000000000000000000000000000",
+      "amountMinor": "1000"
+    },
+    "authorizationContext": {
+      "policyVersion": 1,
+      "witnessVersion": 1,
+      "rulesVersion": 1,
+      "validUntilUnix": "1791396364",
+      "chainId": 5042002,
+      "verifyingContract": "0x61322f6e21ec822cb220b145fb9184265a580b12"
+    },
+    "createdAt": "2026-09-30T18:06:04.226Z",
+    "decisionCommitmentHash": "0x9f95e48beff1e2494da9ba19fd9b282aa22f989cb253f99f851711481344f685"
+  },
+  "authorization": {
+    "attestation": {
+      "obligationId": "0x7aca9a1cd2c398263b2226937b7a8cd87963eaa4e545dbe977d7437e162cd910",
+      "operationId": "0x43708ead7ef24e9f70797b8e66bae029ba506e0c1a0ec487fa246054500891b3",
+      "businessIdHash": "0xdc636f2d2620f74d71336b695e77c781deec1e24ac27320f0b12ecd547ff824b",
+      "vendorIdHash": "0x065d4c5c55f0de76f9de0d78f4675dc2a65653f58a5d9d4aeda6fffcac666535",
+      "payee": "0x8273b9ca852F95467BD060A9106F0998452f55d3",
+      "token": "0x3600000000000000000000000000000000000000",
+      "amountMinor": "1000",
+      "evidenceRoot": "0x0358f0605038371dc683a0913ce99a2158866598ce1cf0d94cec84e651b05de4",
+      "decisionCommitmentHash": "0x9f95e48beff1e2494da9ba19fd9b282aa22f989cb253f99f851711481344f685",
+      "vendorVersion": 1,
+      "policyVersion": 1,
+      "witnessVersion": 1,
+      "rulesVersion": 1,
+      "validUntilUnix": "1791396364",
+      "chainId": "5042002",
+      "verifyingContract": "0x61322f6e21ec822cb220b145fb9184265a580b12"
+    },
+    "attestationHash": "0x0d15a44772bbcca032a431f8279b7dae4d08c41dc3b950801d04a38bac9b140f",
+    "signature": "0x7cf463ea1f390717c12a6bbdedd95fcedc7c2a0e52161e189f1885b26edf32a506f8e86cc933de0c419a37933146b5b5cde11dff79542365f56603ab2580fbbb1c",
+    "signer": "0x07c0EF3d66F278Ff77663f6739DAA448eE5206af"
+  },
+  "settlement": {
+    "chainId": 5042002,
+    "network": "Arc Testnet",
+    "txHash": "0xb386d3041613b028bc6aa88518e8a010b01b1c0eb59aca632da4eefc4fac6b42",
+    "blockNumber": "64819572",
+    "status": "RECONCILED",
+    "explorerUrl": "https://explorer.testnet.arc.io/tx/0xb386d3041613b028bc6aa88518e8a010b01b1c0eb59aca632da4eefc4fac6b42",
+    "finalizedAt": "2026-09-30T18:32:44.000Z",
+    "operationId": "0x43708ead7ef24e9f70797b8e66bae029ba506e0c1a0ec487fa246054500891b3",
+    "vendorIdHash": "0x065d4c5c55f0de76f9de0d78f4675dc2a65653f58a5d9d4aeda6fffcac666535",
+    "payee": "0x8273b9ca852F95467BD060A9106F0998452f55d3",
+    "amountMinor": "1000",
+    "evidenceRoot": "0x0358f0605038371dc683a0913ce99a2158866598ce1cf0d94cec84e651b05de4",
+    "decisionCommitmentHash": "0x9f95e48beff1e2494da9ba19fd9b282aa22f989cb253f99f851711481344f685",
+    "attestationHash": "0x0d15a44772bbcca032a431f8279b7dae4d08c41dc3b950801d04a38bac9b140f"
+  },
+  "finalReceipt": {
+    "receiptId": "receipt_obl_arc_test_001",
+    "businessId": "euthyna-tameion-test-001",
+    "vendorId": "vendor_arc_test",
+    "obligationId": "obl_arc_test_001",
+    "classification": "TEST",
+    "agent": {
+      "planId": "plan_fa51c75363ed5504",
+      "action": "PAY_NOW",
+      "reasonCodes": [
+        "DUE_OR_OVERDUE",
+        "CRITICAL_VENDOR"
+      ],
+      "rationale": "Pay this verified obligation now; its economic priority is higher and the USDC reserve remains intact.",
+      "businessStateHash": "0x3288cb5788ea02012dc5eca3319bb4e6ac2d1b87c9d45af920f05dde2a1f549e",
+      "provider": "euthyna",
+      "model": "bounded-priority",
+      "version": "1.0.0"
+    },
+    "witness": {
+      "verdict": "VERIFIED",
+      "reasonCode": null,
+      "evidenceRoot": "0x0358f0605038371dc683a0913ce99a2158866598ce1cf0d94cec84e651b05de4",
+      "checks": [
+        {
+          "id": "W01",
+          "name": "Required evidence classes are present",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement",
+            "obl_arc_test_001_delivery"
+          ]
+        },
+        {
+          "id": "W02",
+          "name": "Vendor identity matches agreement and invoice",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement"
+          ]
+        },
+        {
+          "id": "W03",
+          "name": "Currency and amount match within policy tolerance",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement"
+          ]
+        },
+        {
+          "id": "W04",
+          "name": "Agreement reference is valid and active",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_agreement"
+          ]
+        },
+        {
+          "id": "W05",
+          "name": "Delivery or service acceptance satisfies release condition",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_delivery"
+          ]
+        },
+        {
+          "id": "W06",
+          "name": "Obligation is not a semantic duplicate",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": []
+        },
+        {
+          "id": "W07",
+          "name": "Payout destination matches the current verified destination",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice"
+          ]
+        },
+        {
+          "id": "W08",
+          "name": "Obligation has not already settled",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": []
+        },
+        {
+          "id": "W09",
+          "name": "Evidence timestamps and versions are fresh",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement",
+            "obl_arc_test_001_delivery"
+          ]
+        },
+        {
+          "id": "W10",
+          "name": "Required payment fields are resolved and unambiguous",
+          "status": "PASS",
+          "disposition": "NONE",
+          "reasonCode": null,
+          "expected": null,
+          "observed": null,
+          "relatedArtifactIds": [
+            "obl_arc_test_001_invoice",
+            "obl_arc_test_001_agreement",
+            "obl_arc_test_001_delivery"
+          ]
+        }
+      ],
+      "vendorVersion": 1
+    },
+    "decisionCommitmentHash": "0x9f95e48beff1e2494da9ba19fd9b282aa22f989cb253f99f851711481344f685",
+    "authorization": {
+      "policyVersion": 1,
+      "attestationHash": "0x0d15a44772bbcca032a431f8279b7dae4d08c41dc3b950801d04a38bac9b140f",
+      "validUntil": "2026-10-07T18:06:04.000Z",
+      "signerVersion": "witness-v1"
+    },
+    "settlement": {
+      "chainId": 5042002,
+      "network": "Arc Testnet",
+      "txHash": "0xb386d3041613b028bc6aa88518e8a010b01b1c0eb59aca632da4eefc4fac6b42",
+      "blockNumber": "64819572",
+      "status": "RECONCILED",
+      "explorerUrl": "https://explorer.testnet.arc.io/tx/0xb386d3041613b028bc6aa88518e8a010b01b1c0eb59aca632da4eefc4fac6b42",
+      "finalizedAt": "2026-09-30T18:32:44.000Z",
+      "operationId": "0x43708ead7ef24e9f70797b8e66bae029ba506e0c1a0ec487fa246054500891b3",
+      "vendorIdHash": "0x065d4c5c55f0de76f9de0d78f4675dc2a65653f58a5d9d4aeda6fffcac666535",
+      "payee": "0x8273b9ca852F95467BD060A9106F0998452f55d3",
+      "amountMinor": "1000",
+      "evidenceRoot": "0x0358f0605038371dc683a0913ce99a2158866598ce1cf0d94cec84e651b05de4",
+      "decisionCommitmentHash": "0x9f95e48beff1e2494da9ba19fd9b282aa22f989cb253f99f851711481344f685",
+      "attestationHash": "0x0d15a44772bbcca032a431f8279b7dae4d08c41dc3b950801d04a38bac9b140f"
+    },
+    "humanAction": null,
+    "createdAt": "2026-09-30T18:06:04.226Z",
+    "finalReceiptHash": "0xe6e6445c09817d10ee9efad3ef5875fd2a401ad319242f9e91db3b42eb2d17de"
+  },
+  "auditEvents": [
+    {
+      "id": "eccbc480-2159-46d8-816e-c0487aa5710f",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "vendor",
+      "entityId": "vendor_arc_test",
+      "action": "VENDOR_CREATED",
+      "actor": "test-owner",
+      "previousState": null,
+      "newState": "PENDING_ONBOARDING",
+      "reasonCode": null,
+      "payloadJson": {
+        "id": "vendor_arc_test",
+        "businessId": "euthyna-tameion-test-001",
+        "legalName": "Acme Design Ltd",
+        "normalizedName": "ACME DESIGN LTD",
+        "status": "PENDING_ONBOARDING",
+        "currentVersion": 0
+      },
+      "payloadHash": "0x57eb38cae9e2fd2b919580a8e723a2f95414a1d31183ad0ef9f98816d0a032cd",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "6fa6227d-5fa9-41af-a06f-8b74fb170638",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "vendor_destination",
+      "entityId": "vendor_arc_test:1",
+      "action": "DESTINATION_PROPOSED",
+      "actor": "test-owner",
+      "previousState": null,
+      "newState": "PROPOSED",
+      "reasonCode": "DESTINATION_UNVERIFIED",
+      "payloadJson": {
+        "vendorId": "vendor_arc_test",
+        "version": 1,
+        "chain": "ARC_TESTNET",
+        "address": "0x8273b9ca852F95467BD060A9106F0998452f55d3",
+        "status": "VERIFIED",
+        "changeKind": "INITIAL_ONBOARDING",
+        "verificationMethod": "OWNER_OUT_OF_BAND",
+        "approvedBy": "test-owner",
+        "approvedAt": "2026-09-30T18:06:04.226Z",
+        "firstSeenAt": "2026-09-30T18:06:04.226Z"
+      },
+      "payloadHash": "0xdc8f3048ac9e83bea598a53c47cf2a89923d271c07bb3077e37ba9d3c86ee21a",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "08756718-8c30-4302-bc4c-9bf3fffd5769",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "vendor_destination",
+      "entityId": "vendor_arc_test:1",
+      "action": "DESTINATION_VERIFIED",
+      "actor": "test-owner",
+      "previousState": "PROPOSED",
+      "newState": "VERIFIED",
+      "reasonCode": null,
+      "payloadJson": {
+        "vendorId": "vendor_arc_test",
+        "version": 1,
+        "chain": "ARC_TESTNET",
+        "address": "0x8273b9ca852F95467BD060A9106F0998452f55d3",
+        "status": "VERIFIED",
+        "changeKind": "INITIAL_ONBOARDING",
+        "verificationMethod": "OWNER_OUT_OF_BAND",
+        "approvedBy": "test-owner",
+        "approvedAt": "2026-09-30T18:06:04.226Z",
+        "firstSeenAt": "2026-09-30T18:06:04.226Z"
+      },
+      "payloadHash": "0x08a86be2aaad98bc1c2b75f288dffe64364a523f5cdc1d7a3e75c40bdf33eb38",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "32497c5a-e876-423c-a2d6-be85476fbc3a",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "evidence_artifact",
+      "entityId": "obl_arc_test_001_invoice",
+      "action": "EVIDENCE_INGESTED",
+      "actor": "test-fixture-generator",
+      "previousState": null,
+      "newState": "IMMUTABLE",
+      "reasonCode": null,
+      "payloadJson": {
+        "normalizedContentHash": "sha256:21d0f385491fab96fe857e9af2bc97f28fc9a06dd5f1906ef8030ad78aed0d23",
+        "rawArtifactHash": "sha256:7b20b6b38ce3151e8cf17276d1824f2b42b2b82706005eaa49a440d9d7f628e7"
+      },
+      "payloadHash": "0x3c043037135f0c5c512b9f6a0f905e054d68e178d00ee01e03ed481ea4143604",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "9d71f801-22f8-4f0f-be87-d1acb2851fea",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "evidence_artifact",
+      "entityId": "obl_arc_test_001_agreement",
+      "action": "EVIDENCE_INGESTED",
+      "actor": "test-fixture-generator",
+      "previousState": null,
+      "newState": "IMMUTABLE",
+      "reasonCode": null,
+      "payloadJson": {
+        "normalizedContentHash": "sha256:806889c7ad9922f79c32168f34089a44e5fc12fdb8723c4193c091158fd5aa6d",
+        "rawArtifactHash": "sha256:8c9a8156eb9bec35dd0c6270f59e16492c083d9dc4076534b0b1eea47f893dff"
+      },
+      "payloadHash": "0x856bda1cc29ef6ef1fb0ae9b136392ca4ee06541b260b77f0f522f0bc2e5da04",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "1a474c13-464c-4cb4-98b8-05e25dcb5a9b",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "evidence_artifact",
+      "entityId": "obl_arc_test_001_delivery",
+      "action": "EVIDENCE_INGESTED",
+      "actor": "test-fixture-generator",
+      "previousState": null,
+      "newState": "IMMUTABLE",
+      "reasonCode": null,
+      "payloadJson": {
+        "normalizedContentHash": "sha256:c14bc70dd0f1e7b3befd29b3f5fefdf71223dc49d0333f358c298c0ec9d88625",
+        "rawArtifactHash": "sha256:dd844146fb454f1071b78849b6a8e6d5976986a752477537599fd0cad3645996"
+      },
+      "payloadHash": "0x81797528ac052f569d63205be96be6c59035ec1b1d4a3b3c7f0c182f05bab5da",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "56f8f2a4-26b9-478b-8526-45b2f8dcea57",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "obligation",
+      "entityId": "obl_arc_test_001",
+      "action": "OBLIGATION_CREATED",
+      "actor": "first-arc-runner",
+      "previousState": null,
+      "newState": "EVIDENCE_PENDING",
+      "reasonCode": null,
+      "payloadJson": {
+        "evidenceIds": [
+          "obl_arc_test_001_invoice",
+          "obl_arc_test_001_agreement",
+          "obl_arc_test_001_delivery"
+        ]
+      },
+      "payloadHash": "0x450fbacd6c8d018945d78edaa5d028a5864a8858ecc3e4f1c3eff75b0143afcc",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "1577e5b1-003d-4832-a791-ae54a8b96e39",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "obligation",
+      "entityId": "obl_arc_test_001",
+      "action": "STATE_TRANSITION",
+      "actor": "witness:rules-v1",
+      "previousState": "EVIDENCE_PENDING",
+      "newState": "VERIFIED",
+      "reasonCode": null,
+      "payloadJson": {},
+      "payloadHash": "0x44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "edfd7584-3462-46b6-ac49-f9936c561187",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "obligation",
+      "entityId": "obl_arc_test_001",
+      "action": "STATE_TRANSITION",
+      "actor": "decision-agent",
+      "previousState": "VERIFIED",
+      "newState": "PLANNED",
+      "reasonCode": null,
+      "payloadJson": {},
+      "payloadHash": "0x44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "6a056018-22ad-4e06-a0dd-23f3269a4470",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "obligation",
+      "entityId": "obl_arc_test_001",
+      "action": "STATE_TRANSITION",
+      "actor": "witness:v1",
+      "previousState": "PLANNED",
+      "newState": "AUTHORIZED",
+      "reasonCode": null,
+      "payloadJson": {},
+      "payloadHash": "0x44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "createdAt": "2026-09-30T18:06:04.226Z"
+    },
+    {
+      "id": "df127add-0605-494f-8ceb-06a428205f56",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "obligation",
+      "entityId": "obl_arc_test_001",
+      "action": "STATE_TRANSITION",
+      "actor": "arc-reconciler",
+      "previousState": "AUTHORIZED",
+      "newState": "SUBMITTED",
+      "reasonCode": null,
+      "payloadJson": {},
+      "payloadHash": "0x44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "createdAt": "2026-09-30T18:32:44.000Z"
+    },
+    {
+      "id": "122478eb-f076-47c4-b50b-16650dedfb1a",
+      "businessId": "euthyna-tameion-test-001",
+      "entityType": "obligation",
+      "entityId": "obl_arc_test_001",
+      "action": "STATE_TRANSITION",
+      "actor": "arc-reconciler",
+      "previousState": "SUBMITTED",
+      "newState": "SETTLED",
+      "reasonCode": null,
+      "payloadJson": {},
+      "payloadHash": "0x44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "createdAt": "2026-09-30T18:32:44.000Z"
+    }
+  ]
+}
