@@ -68,10 +68,11 @@ Deliberately exit the process immediately after the Circle-signed transaction
 is accepted by Arc RPC:
 
 ```bash
+pnpm --filter @euthyna/api build
 ARC_TESTNET_SETTLEMENT_ACK=YES \
 ALLOW_TESTNET_RAW_WITNESS_KEY=YES \
 FIRST_ARC_CRASH_AFTER_BROADCAST=YES \
-pnpm --filter @euthyna/api arc:first-settlement
+node apps/api/dist/first-arc-settlement.js
 ```
 
 The expected exit code is `86`. Stdout contains the broadcast transaction hash,
@@ -85,7 +86,7 @@ payment:
 ARC_TESTNET_SETTLEMENT_ACK=YES \
 ALLOW_TESTNET_RAW_WITNESS_KEY=YES \
 FIRST_ARC_CRASH_AFTER_BROADCAST=NO \
-pnpm --filter @euthyna/api arc:first-settlement
+node apps/api/dist/first-arc-settlement.js
 ```
 
 The successful retry writes the public-safe evidence, checks, decision,

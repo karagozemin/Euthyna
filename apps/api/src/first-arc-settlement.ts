@@ -1,5 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   CircleArcExecutor,
   RpcExecutionSimulator,
@@ -31,6 +33,8 @@ import {
   type Hex,
 } from "viem";
 import { arcTestnet } from "viem/chains";
+
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 function required(name: string): string {
   const value = process.env[name];
@@ -283,14 +287,16 @@ async function main(): Promise<void> {
     new RpcExecutionSimulator(publicClient, `-${amountMinor}`),
     publicClient,
   );
-  const checkpointDirectory = ".euthyna";
-  const checkpointPath = `${checkpointDirectory}/first-arc-broadcast.json`;
-  await mkdir(checkpointDirectory, { recursive: true });
+  const checkpointDirectory = resolve(projectRoot, ".euthyna");
+  const checkpointPath = resolve(checkpointDirectory, "first-arc-broadcast.json");
+  await mkdir(checkpointDirectory, { recursive: true, mode: 0o700 });
+  let recoveredCircleTransactionId: string | undefined;
   try {
     const checkpoint = JSON.parse(await readFile(checkpointPath, "utf8")) as {
       obligationId?: string;
       attestationHash?: string;
       txHash?: Hex;
+      circleTransactionId?: string;
     };
     if (
       checkpoint.obligationId !== obligationId ||
@@ -299,6 +305,7 @@ async function main(): Promise<void> {
     ) {
       throw new Error("Existing broadcast checkpoint belongs to a different authorization");
     }
+    recoveredCircleTransactionId = checkpoint.circleTransactionId;
     // Do not race an accepted transaction with a retry. Wait for its receipt,
     // then let exact event reconciliation decide whether payment occurred.
     await publicClient.waitForTransactionReceipt({ hash: checkpoint.txHash });
@@ -337,6 +344,9 @@ async function main(): Promise<void> {
         operationId,
         attestationHash: authorization.attestationHash,
         txHash: settlement.txHash,
+        ...(recoveredCircleTransactionId
+          ? { circleTransactionId: recoveredCircleTransactionId }
+          : {}),
         state: "RECONCILED",
       },
       null,
@@ -379,8 +389,9 @@ async function main(): Promise<void> {
     finalReceipt,
     auditEvents: repository.snapshot().auditEvents,
   };
-  await mkdir("artifacts", { recursive: true });
-  await writeFile("artifacts/first-arc-settlement.json", `${JSON.stringify(output, null, 2)}\n`, {
+  const artifactDirectory = resolve(projectRoot, "artifacts");
+  await mkdir(artifactDirectory, { recursive: true });
+  await writeFile(resolve(artifactDirectory, "first-arc-settlement.json"), `${JSON.stringify(output, null, 2)}\n`, {
     mode: 0o644,
   });
   process.stdout.write(`${JSON.stringify({ settlement, finalReceiptHash: finalReceipt.finalReceiptHash }, null, 2)}\n`);
