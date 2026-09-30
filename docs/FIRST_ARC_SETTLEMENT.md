@@ -47,9 +47,10 @@ The script also submits source verification to the Blockscout-compatible Arc
 explorer by default and records `verificationStatus`; set `VERIFY_CONTRACT=NO`
 only when diagnosing an explorer outage.
 
-Before authorizing an obligation, prove that Circle can return a correctly
-signed EIP-1559 transaction and Arc RPC accepts it. This broadcasts a zero-value
-self-transaction and consumes only gas:
+Before authorizing an obligation, prove that Circle's managed Arc transaction
+path can sign and broadcast the exact prepared calldata. This calls the official
+USDC contract with a zero-amount transfer back to the Circle wallet and consumes
+only gas:
 
 ```bash
 ARC_SMOKE_BROADCAST=YES pnpm --filter @euthyna/chain arc:smoke
@@ -126,6 +127,8 @@ Rules and policy versions independently invalidate stale authorizations.
 No command logs API keys, entity secrets, or private keys. There is no generic
 signing HTTP endpoint.
 
-Circle's current EVM signing guide uses the same transaction JSON fields as this
-implementation (`nonce`, `to`, `value`, `gas`, EIP-1559 fee fields, and
-`chainId`): <https://developers.circle.com/wallets/sign-tx-evm>.
+Circle's raw transaction signing endpoint supports generic `EVM` and
+`EVM-TESTNET` wallets, not chain-specific `ARC-TESTNET` wallets. This flow uses
+Circle's managed contract-execution endpoint with raw `callData`, a deterministic
+idempotency key, and Circle transaction-ID/tx-hash validation:
+<https://developers.circle.com/api-reference/wallets/developer-controlled-wallets/create-contract-execution-transaction>.

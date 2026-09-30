@@ -25,15 +25,40 @@ import {
 } from "./attestation.js";
 import type { ExecutionSimulator, PreparedTransaction } from "./simulator.js";
 
-const ARC_MIN_MAX_FEE_PER_GAS = 20_000_000_000n;
-
-export interface CircleSigningClient {
-  signTransaction(input: {
+export interface CircleManagedWalletClient {
+  createContractExecutionTransaction(input: {
     walletId: string;
-    transaction: string;
-    memo?: string;
-  }): Promise<{ data?: { signedTransaction?: string; txHash?: string } }>;
-  getWallet?(input: { id: string }): Promise<{ data?: { wallet?: { address?: string } } }>;
+    contractAddress: string;
+    callData: Hex;
+    idempotencyKey: string;
+    refId: string;
+    fee: { type: "level"; config: { feeLevel: "MEDIUM" } };
+  }): Promise<{ data?: { id?: string; state?: string } }>;
+  getTransaction(input: {
+    id: string;
+    waitForTxHash: true;
+    pollingInterval: number;
+    signal: AbortSignal;
+  }): Promise<{
+    data?: {
+      transaction?: {
+        id?: string;
+        txHash?: string;
+        blockchain?: string;
+        walletId?: string;
+        sourceAddress?: string;
+        contractAddress?: string;
+        state?: string;
+      };
+    };
+  }>;
+  getWallet(input: {
+    id: string;
+  }): Promise<{
+    data?: {
+      wallet?: { address?: string; blockchain?: string; accountType?: string };
+    };
+  }>;
 }
 
 export interface CircleSignerCredentials {
@@ -41,46 +66,93 @@ export interface CircleSignerCredentials {
   entitySecret: string;
 }
 
-export class CircleTransactionSigner {
+export interface CircleSubmittedTransaction {
+  circleTransactionId: string;
+  txHash: Hex;
+}
+
+export function circleIdempotencyKey(attestationHash: Hex): string {
+  if (!/^0x[0-9a-fA-F]{64}$/u.test(attestationHash)) {
+    throw new Error("Circle idempotency input must be a 32-byte hash");
+  }
+  const bytes = Uint8Array.from(Buffer.from(attestationHash.slice(2, 34), "hex"));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Buffer.from(bytes).toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+export class CircleArcTransactionClient {
   constructor(
-    private readonly client: CircleSigningClient,
+    private readonly client: CircleManagedWalletClient,
     private readonly walletId: string,
   ) {}
 
-  async sign(transaction: Record<string, string | number>, memo: string): Promise<Hex> {
-    const response = await this.client.signTransaction({
+  async submitContractExecution(input: {
+    contractAddress: Address;
+    callData: Hex;
+    idempotencyKey: string;
+    refId: string;
+    expectedAddress: Address;
+  }): Promise<CircleSubmittedTransaction> {
+    const response = await this.client.createContractExecutionTransaction({
       walletId: this.walletId,
-      transaction: JSON.stringify(transaction),
-      memo,
+      contractAddress: input.contractAddress,
+      callData: input.callData,
+      idempotencyKey: input.idempotencyKey,
+      refId: input.refId,
+      fee: { type: "level", config: { feeLevel: "MEDIUM" } },
     });
-    const signed = response.data?.signedTransaction;
-    if (!signed || !/^0x[0-9a-fA-F]+$/.test(signed)) {
-      throw new Error("Circle did not return a valid signed EVM transaction");
+    const transactionId = response.data?.id;
+    if (!transactionId) {
+      throw new Error("Circle did not return a managed transaction ID");
     }
-    return signed as Hex;
+    const final = (
+      await this.client.getTransaction({
+        id: transactionId,
+        waitForTxHash: true,
+        pollingInterval: 1_000,
+        signal: AbortSignal.timeout(120_000),
+      })
+    ).data?.transaction;
+    if (
+      !final ||
+      final.id !== transactionId ||
+      final.walletId !== this.walletId ||
+      final.blockchain !== "ARC-TESTNET" ||
+      final.sourceAddress?.toLowerCase() !== input.expectedAddress.toLowerCase() ||
+      final.contractAddress?.toLowerCase() !== input.contractAddress.toLowerCase() ||
+      !final.txHash ||
+      !/^0x[0-9a-fA-F]{64}$/u.test(final.txHash)
+    ) {
+      throw new Error("Circle managed transaction identity does not match the prepared Arc call");
+    }
+    return { circleTransactionId: transactionId, txHash: final.txHash as Hex };
   }
 
   async assertWalletAddress(expectedAddress: Address): Promise<void> {
-    if (!this.client.getWallet) {
-      throw new Error("Circle client cannot verify the configured wallet address");
-    }
     const response = await this.client.getWallet({ id: this.walletId });
-    const actual = response.data?.wallet?.address;
-    if (!actual || actual.toLowerCase() !== expectedAddress.toLowerCase()) {
-      throw new Error("Circle wallet ID does not match CIRCLE_WALLET_ADDRESS");
+    const wallet = response.data?.wallet;
+    if (
+      !wallet?.address ||
+      wallet.address.toLowerCase() !== expectedAddress.toLowerCase() ||
+      wallet.blockchain !== "ARC-TESTNET" ||
+      wallet.accountType !== "EOA"
+    ) {
+      throw new Error("Circle wallet identity is not the configured Arc Testnet EOA");
     }
   }
 }
 
-export function createCircleTransactionSigner(
+export function createCircleArcTransactionClient(
   credentials: CircleSignerCredentials,
   walletId: string,
-): CircleTransactionSigner {
+): CircleArcTransactionClient {
   if (!credentials.apiKey || !credentials.entitySecret) {
     throw new Error("Circle API key and entity secret are required");
   }
   const client = initiateDeveloperControlledWalletsClient(credentials);
-  return new CircleTransactionSigner(client, walletId);
+  return new CircleArcTransactionClient(client, walletId);
 }
 
 export interface SubmitAuthorization {
@@ -88,7 +160,7 @@ export interface SubmitAuthorization {
   witnessSignature: Hex;
   ownerApproval?: Hex;
   /** Testnet/operator hook used to prove recovery from a process exit after broadcast. */
-  afterBroadcast?: (txHash: Hex) => Promise<void> | void;
+  afterBroadcast?: (txHash: Hex, circleTransactionId: string) => Promise<void> | void;
 }
 
 export class SimulationFailedError extends Error {
@@ -99,8 +171,10 @@ export class SimulationFailedError extends Error {
 }
 
 /**
- * Circle signs; Arc RPC simulates, broadcasts, and reconciles. Retries first
- * inspect the obligation settlement event so a worker crash cannot repay it.
+ * Arc RPC simulates, Circle signs and broadcasts the exact prepared call, and
+ * reconciliation treats chain state as authoritative. Retries inspect the
+ * settlement event first, while a deterministic Circle idempotency key also
+ * protects the response-lost-before-checkpoint boundary.
  */
 export class CircleArcExecutor {
   private readonly config: ArcDeploymentConfig;
@@ -108,7 +182,7 @@ export class CircleArcExecutor {
 
   constructor(
     rawConfig: ArcDeploymentConfig,
-    private readonly signer: CircleTransactionSigner,
+    private readonly circle: CircleArcTransactionClient,
     private readonly simulator: ExecutionSimulator,
     client?: PublicClient,
   ) {
@@ -128,7 +202,7 @@ export class CircleArcExecutor {
     }
     const existing = await this.reconcile(attestation);
     if (existing) return existing;
-    await this.signer.assertWalletAddress(this.config.circleWalletAddress as Address);
+    await this.circle.assertWalletAddress(this.config.circleWalletAddress as Address);
 
     const data = encodeReleaseCall(
       attestation,
@@ -146,39 +220,20 @@ export class CircleArcExecutor {
       throw new SimulationFailedError(simulation.revertReason ?? "Arc preflight failed");
     }
 
-    const nonce = await this.client.getTransactionCount({ address: transaction.from });
-    const gas = await this.client.estimateGas({
-      account: transaction.from,
-      to: transaction.to,
-      data: transaction.data,
-      value: 0n,
-    });
-    const fees = await this.client.estimateFeesPerGas();
-    const maxFeePerGas =
-      (fees.maxFeePerGas ?? 0n) < ARC_MIN_MAX_FEE_PER_GAS
-        ? ARC_MIN_MAX_FEE_PER_GAS
-        : (fees.maxFeePerGas ?? ARC_MIN_MAX_FEE_PER_GAS);
-    const maxPriorityFeePerGas =
-      (fees.maxPriorityFeePerGas ?? 0n) > maxFeePerGas
-        ? maxFeePerGas
-        : (fees.maxPriorityFeePerGas ?? 0n);
-    const signed = await this.signer.sign(
-      {
-        chainId: this.config.chainId,
-        nonce: nonce.toString(),
-        to: transaction.to,
-        data: transaction.data,
-        value: "0",
-        gas: gas.toString(),
-        maxFeePerGas: maxFeePerGas.toString(),
-        maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
-      },
-      `Euthyna obligation ${attestation.obligationId}`,
-    );
-
     try {
-      const txHash = await this.client.sendRawTransaction({ serializedTransaction: signed });
-      await rawInput.afterBroadcast?.(txHash);
+      const attestationHash = hashWitnessAttestation(
+        this.config.chainId,
+        this.config.vaultAddress as Address,
+        attestation,
+      );
+      const { txHash, circleTransactionId } = await this.circle.submitContractExecution({
+        contractAddress: transaction.to,
+        callData: transaction.data,
+        idempotencyKey: circleIdempotencyKey(attestationHash),
+        refId: `euthyna-${attestation.operationId.slice(2, 34)}`,
+        expectedAddress: transaction.from,
+      });
+      await rawInput.afterBroadcast?.(txHash, circleTransactionId);
       const receipt = await this.client.waitForTransactionReceipt({ hash: txHash });
       if (receipt.status !== "success") {
         throw new Error(`Arc transaction reverted: ${txHash}`);

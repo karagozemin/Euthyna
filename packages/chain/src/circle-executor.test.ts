@@ -1,8 +1,12 @@
 import type { WitnessAttestation } from "@euthyna/domain";
 import { describe, expect, it, vi } from "vitest";
-import type { Address } from "viem";
-import { hashWitnessAttestation } from "./attestation.js";
-import { CircleArcExecutor, CircleTransactionSigner } from "./circle-executor.js";
+import type { Address, Hex } from "viem";
+import { encodeReleaseCall, hashWitnessAttestation } from "./attestation.js";
+import {
+  CircleArcExecutor,
+  CircleArcTransactionClient,
+  circleIdempotencyKey,
+} from "./circle-executor.js";
 
 const vault = "0x1111111111111111111111111111111111111111" as Address;
 const attestation: WitnessAttestation = {
@@ -39,46 +43,94 @@ const config = {
   circleWalletAddress: "0x4444444444444444444444444444444444444444",
 };
 
-describe("Circle transaction signer boundary", () => {
-  it("sends only a serialized transaction request and returns signed bytes", async () => {
-    const signTransaction = vi.fn().mockResolvedValue({
-      data: { signedTransaction: "0x02abcd", txHash: `0x${"1".repeat(64)}` },
+describe("Circle managed Arc transaction boundary", () => {
+  it("submits only the exact prepared calldata with a stable idempotency key", async () => {
+    const txHash = `0x${"1".repeat(64)}` as Hex;
+    const createContractExecutionTransaction = vi.fn().mockResolvedValue({
+      data: { id: "circle-tx-id", state: "INITIATED" },
     });
-    const signer = new CircleTransactionSigner({ signTransaction }, "wallet-id");
-    await expect(
-      signer.sign({ chainId: 5_042_002, nonce: "1", value: "0" }, "obligation"),
-    ).resolves.toBe("0x02abcd");
-    expect(signTransaction).toHaveBeenCalledWith({
-      walletId: "wallet-id",
-      transaction: JSON.stringify({ chainId: 5_042_002, nonce: "1", value: "0" }),
-      memo: "obligation",
+    const getTransaction = vi.fn().mockResolvedValue({
+      data: {
+        transaction: {
+          id: "circle-tx-id",
+          txHash,
+          blockchain: "ARC-TESTNET",
+          walletId: "wallet-id",
+          sourceAddress: config.circleWalletAddress,
+          contractAddress: vault,
+          state: "SENT",
+        },
+      },
     });
-  });
-
-  it("fails closed when Circle omits signed transaction bytes", async () => {
-    const signer = new CircleTransactionSigner(
-      { signTransaction: vi.fn().mockResolvedValue({ data: {} }) },
+    const circle = new CircleArcTransactionClient(
+      { createContractExecutionTransaction, getTransaction, getWallet: vi.fn() },
       "wallet-id",
     );
-    await expect(signer.sign({ chainId: 5_042_002 }, "obligation")).rejects.toThrow(
-      /valid signed EVM transaction/,
+    const callData = "0x1234" as Hex;
+    const idempotencyKey = circleIdempotencyKey(`0x${"a".repeat(64)}`);
+    await expect(
+      circle.submitContractExecution({
+        contractAddress: vault,
+        callData,
+        idempotencyKey,
+        refId: "euthyna-test",
+        expectedAddress: config.circleWalletAddress as Address,
+      }),
+    ).resolves.toEqual({ circleTransactionId: "circle-tx-id", txHash });
+    expect(createContractExecutionTransaction).toHaveBeenCalledWith({
+      walletId: "wallet-id",
+      contractAddress: vault,
+      callData,
+      idempotencyKey,
+      refId: "euthyna-test",
+      fee: { type: "level", config: { feeLevel: "MEDIUM" } },
+    });
+    expect(getTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "circle-tx-id", waitForTxHash: true }),
     );
+  });
+
+  it("fails closed when Circle omits the managed transaction ID", async () => {
+    const circle = new CircleArcTransactionClient(
+      {
+        createContractExecutionTransaction: vi.fn().mockResolvedValue({ data: {} }),
+        getTransaction: vi.fn(),
+        getWallet: vi.fn(),
+      },
+      "wallet-id",
+    );
+    await expect(
+      circle.submitContractExecution({
+        contractAddress: vault,
+        callData: "0x1234",
+        idempotencyKey: circleIdempotencyKey(`0x${"a".repeat(64)}`),
+        refId: "euthyna-test",
+        expectedAddress: config.circleWalletAddress as Address,
+      }),
+    ).rejects.toThrow(/transaction ID/);
   });
 
   it("verifies the Circle wallet ID against the configured signer address", async () => {
-    const signer = new CircleTransactionSigner(
+    const circle = new CircleArcTransactionClient(
       {
-        signTransaction: vi.fn(),
+        createContractExecutionTransaction: vi.fn(),
+        getTransaction: vi.fn(),
         getWallet: vi.fn().mockResolvedValue({
-          data: { wallet: { address: config.circleWalletAddress } },
+          data: {
+            wallet: {
+              address: config.circleWalletAddress,
+              blockchain: "ARC-TESTNET",
+              accountType: "EOA",
+            },
+          },
         }),
       },
       config.circleWalletId,
     );
-    await expect(signer.assertWalletAddress(config.circleWalletAddress as Address)).resolves.toBeUndefined();
+    await expect(circle.assertWalletAddress(config.circleWalletAddress as Address)).resolves.toBeUndefined();
     await expect(
-      signer.assertWalletAddress("0x5555555555555555555555555555555555555555"),
-    ).rejects.toThrow(/does not match/);
+      circle.assertWalletAddress("0x5555555555555555555555555555555555555555"),
+    ).rejects.toThrow(/identity/);
   });
 });
 
@@ -111,7 +163,7 @@ describe("Circle Arc exact authorization reconciliation", () => {
     const client = makeClient({ amount: 1001n });
     const executor = new CircleArcExecutor(
       config,
-      {} as CircleTransactionSigner,
+      {} as CircleArcTransactionClient,
       {} as never,
       client as never,
     );
@@ -122,7 +174,7 @@ describe("Circle Arc exact authorization reconciliation", () => {
     const client = makeClient();
     const executor = new CircleArcExecutor(
       config,
-      {} as CircleTransactionSigner,
+      {} as CircleArcTransactionClient,
       {} as never,
       client as never,
     );
@@ -133,13 +185,55 @@ describe("Circle Arc exact authorization reconciliation", () => {
     });
   });
 
+  it("submits the exact release calldata through Circle with deterministic idempotency", async () => {
+    const txHash = `0x${"8".repeat(64)}` as Hex;
+    const client = makeClient();
+    client.readContract.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    Object.assign(client, {
+      waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
+    });
+    const assertWalletAddress = vi.fn();
+    const submitContractExecution = vi.fn().mockResolvedValue({
+      txHash,
+      circleTransactionId: "circle-tx-id",
+    });
+    const simulator = {
+      simulate: vi.fn().mockResolvedValue({
+        success: true,
+        provider: "RPC",
+        expectedBalanceDeltaMinor: "-1000",
+        revertReason: null,
+      }),
+    };
+    const afterBroadcast = vi.fn();
+    const signature = `0x${"9".repeat(130)}` as Hex;
+    const executor = new CircleArcExecutor(
+      config,
+      { assertWalletAddress, submitContractExecution } as unknown as CircleArcTransactionClient,
+      simulator,
+      client as never,
+    );
+    await expect(
+      executor.submit({ attestation, witnessSignature: signature, afterBroadcast }),
+    ).resolves.toMatchObject({ txHash, status: "FINAL" });
+    const attestationHash = hashWitnessAttestation(config.chainId, vault, attestation);
+    expect(submitContractExecution).toHaveBeenCalledWith({
+      contractAddress: vault,
+      callData: encodeReleaseCall(attestation, signature, "0x"),
+      idempotencyKey: circleIdempotencyKey(attestationHash),
+      refId: `euthyna-${attestation.operationId.slice(2, 34)}`,
+      expectedAddress: config.circleWalletAddress,
+    });
+    expect(afterBroadcast).toHaveBeenCalledWith(txHash, "circle-tx-id");
+  });
+
   it("reconciles a crash retry before invoking Circle or broadcasting again", async () => {
     const client = makeClient();
     const assertWalletAddress = vi.fn();
-    const sign = vi.fn();
+    const submitContractExecution = vi.fn();
     const executor = new CircleArcExecutor(
       config,
-      { assertWalletAddress, sign } as unknown as CircleTransactionSigner,
+      { assertWalletAddress, submitContractExecution } as unknown as CircleArcTransactionClient,
       {} as never,
       client as never,
     );
@@ -147,7 +241,7 @@ describe("Circle Arc exact authorization reconciliation", () => {
       executor.submit({ attestation, witnessSignature: `0x${"9".repeat(130)}` }),
     ).resolves.toMatchObject({ txHash: `0x${"8".repeat(64)}` });
     expect(assertWalletAddress).not.toHaveBeenCalled();
-    expect(sign).not.toHaveBeenCalled();
+    expect(submitContractExecution).not.toHaveBeenCalled();
     expect(client).not.toHaveProperty("sendRawTransaction");
   });
 });

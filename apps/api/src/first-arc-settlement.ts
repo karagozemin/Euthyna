@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   CircleArcExecutor,
   RpcExecutionSimulator,
-  createCircleTransactionSigner,
+  createCircleArcTransactionClient,
   loadArcDeploymentConfigFromEnv,
   runArcFundingPreflight,
 } from "@euthyna/chain";
@@ -273,13 +273,13 @@ async function main(): Promise<void> {
   });
 
   const publicClient = createPublicClient({ chain: arcTestnet, transport: http(config.rpcUrl) });
-  const circleSigner = createCircleTransactionSigner(
+  const circleClient = createCircleArcTransactionClient(
     { apiKey: required("CIRCLE_API_KEY"), entitySecret: required("CIRCLE_ENTITY_SECRET") },
     config.circleWalletId,
   );
   const executor = new CircleArcExecutor(
     config,
-    circleSigner,
+    circleClient,
     new RpcExecutionSimulator(publicClient, `-${amountMinor}`),
     publicClient,
   );
@@ -312,12 +312,13 @@ async function main(): Promise<void> {
     witnessSignature: authorization.signature,
     ...(simulateCrash
       ? {
-          afterBroadcast: (txHash: Hex) => {
+          afterBroadcast: (txHash: Hex, circleTransactionId: string) => {
             const checkpoint = {
               obligationId,
               operationId,
               attestationHash: authorization.attestationHash,
               txHash,
+              circleTransactionId,
               state: "BROADCAST_BEFORE_RECONCILIATION",
             };
             writeFileSync(checkpointPath, `${JSON.stringify(checkpoint, null, 2)}\n`, { mode: 0o600 });
