@@ -6,6 +6,7 @@ on:
     paths:
       - "apps/web/**"
       - "artifacts/first-arc-settlement.json"
+      - "artifacts/pilots/**"
       - "pnpm-lock.yaml"
       - ".github/workflows/deploy-reviewer-demo.yml"
   workflow_dispatch:

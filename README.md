@@ -163,6 +163,12 @@ currently no claimed REAL pilot obligations or payment volume. A pilot record
 can expose redacted business/vendor/obligation metadata, amount, evidence types,
 verdict, decision and settlement result without exposing private documents.
 
+The operator-assisted REAL pilot path is documented in
+[`docs/REAL_PILOT_RUNBOOK.md`](docs/REAL_PILOT_RUNBOOK.md). Private documents and
+consent records stay under ignored `.euthyna/pilots/`; a strict publisher emits
+only [`artifacts/pilots/public-index.json`](artifacts/pilots/public-index.json).
+The committed index currently reports zero REAL businesses and obligations.
+
 ## Tests
 
 The repository exercises the complete trust path:

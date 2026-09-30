@@ -1,3 +1,41 @@
+import pilotPublicIndex from "../../../artifacts/pilots/public-index.json";
+
+export interface PublicRealPilot {
+  publicId: string;
+  classification: "REAL";
+  businessAlias: string;
+  vendorAlias: string;
+  amount: { mode: "NONE" | "EXACT" | "RANGE"; label: string | null };
+  evidenceTypes: string[];
+  witnessVerdict: "VERIFIED" | "HOLD" | "REJECT";
+  reasonCode: string | null;
+  agentDecision: "PAY_NOW" | "SCHEDULE" | "PARTIAL_PAY" | "ESCALATE" | "NO_ACTION" | null;
+  settlementStatus: "NOT_REQUESTED" | "CONSENTED_NOT_EXECUTED" | "FINAL" | "RECONCILED";
+  evidenceRoot: string | null;
+  txHash: string | null;
+  evaluatedAt: string;
+}
+
+interface PublicPilotIndexData {
+  metrics: {
+    businessesOnboarded: number;
+    obligationsProcessed: number;
+    verified: number;
+    hold: number;
+    rejected: number;
+    autonomousSettlements: number;
+    totalPaymentVolumeMinor: string | null;
+    duplicatesDetected: number;
+    payoutChangesDetected: number;
+    decisions: number;
+    escalations: number;
+    humanAgreement: { agreed: number; observed: number; ratePercent: number | null };
+  };
+  records: PublicRealPilot[];
+}
+
+const publicPilotData = pilotPublicIndex as PublicPilotIndexData;
+
 export type Classification = "TEST" | "REAL";
 export type WitnessVerdict = "VERIFIED" | "HOLD" | "REJECTED";
 export type AgentAction = "PAY_NOW" | "SCHEDULE" | "ESCALATE" | "NOT_ELIGIBLE";
@@ -322,7 +360,11 @@ export const OBLIGATIONS = SCENARIOS.flatMap((scenario) => scenario.obligations)
 
 export const DEMO_METRICS = {
   classification: "TEST" as const,
+  businessesOnboarded: 1,
   obligationsProcessed: OBLIGATIONS.length,
+  verified: 4,
+  hold: 1,
+  rejected: 1,
   totalPaymentVolume: ARC_PROOF.settledAmount,
   duplicateObligationsCaught: 1,
   obligationsSettledAutonomously: 1,
@@ -334,18 +376,38 @@ export const DEMO_METRICS = {
   settlementSuccessRate: "100% · 1 of 1 submitted",
 };
 
+function formatPublicUsdc(amountMinor: string | null): string {
+  if (amountMinor === null) return "N/A · volume not consented";
+  const value = BigInt(amountMinor);
+  const whole = value / 1_000_000n;
+  const fraction = (value % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
+  return `${whole}${fraction ? `.${fraction}` : ""} USDC`;
+}
+
+const realSettlements = publicPilotData.records.filter((record) => ["FINAL", "RECONCILED"].includes(record.settlementStatus));
+
+export const PUBLIC_REAL_PILOTS = publicPilotData.records;
+
 export const REAL_METRICS = {
   classification: "REAL" as const,
-  obligationsProcessed: 0,
-  totalPaymentVolume: "0 USDC",
-  duplicateObligationsCaught: 0,
-  obligationsSettledAutonomously: 0,
-  decisions: 0,
-  escalations: 0,
-  humanAgreementRate: "N/A · pilot not onboarded",
-  holdEvents: 0,
-  payoutDestinationChangesCaught: 0,
-  settlementSuccessRate: "N/A · no real submissions",
+  businessesOnboarded: publicPilotData.metrics.businessesOnboarded,
+  obligationsProcessed: publicPilotData.metrics.obligationsProcessed,
+  verified: publicPilotData.metrics.verified,
+  hold: publicPilotData.metrics.hold,
+  rejected: publicPilotData.metrics.rejected,
+  totalPaymentVolume: formatPublicUsdc(publicPilotData.metrics.totalPaymentVolumeMinor),
+  duplicateObligationsCaught: publicPilotData.metrics.duplicatesDetected,
+  obligationsSettledAutonomously: publicPilotData.metrics.autonomousSettlements,
+  decisions: publicPilotData.metrics.decisions,
+  escalations: publicPilotData.metrics.escalations,
+  humanAgreementRate: publicPilotData.metrics.humanAgreement.observed === 0
+    ? "N/A · no observed feedback"
+    : `${publicPilotData.metrics.humanAgreement.ratePercent}% · ${publicPilotData.metrics.humanAgreement.agreed}/${publicPilotData.metrics.humanAgreement.observed} responses`,
+  holdEvents: publicPilotData.metrics.hold,
+  payoutDestinationChangesCaught: publicPilotData.metrics.payoutChangesDetected,
+  settlementSuccessRate: realSettlements.length === 0
+    ? "N/A · no real submissions"
+    : `100% · ${realSettlements.length} public settlement${realSettlements.length === 1 ? "" : "s"}`,
 };
 
 export function getScenario(slug: string | undefined): Scenario | undefined {

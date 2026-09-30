@@ -10,7 +10,8 @@
     "build": "pnpm -r --if-present build && forge build --root contracts",
     "typecheck": "pnpm -r --if-present build && pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test && forge test --root contracts",
-    "test:coverage": "pnpm -r --if-present test:coverage"
+    "test:coverage": "pnpm -r --if-present test:coverage",
+    "pilot": "pnpm --filter @euthyna/api pilot"
   },
   "devDependencies": {
     "@openzeppelin/contracts": "^5.4.0",

@@ -272,6 +272,19 @@ td > span:not(.badge), .reason-cell { display: block; color: var(--muted); }
 .metrics-rows > div:last-child { border: 0; }
 .metrics-rows span { color: var(--muted); font-size: 12px; }
 .metrics-rows strong { text-align: right; font-size: 13px; }
+.real-pilot-empty { display: grid; grid-template-columns: .8fr 1.2fr; gap: 80px; align-items: center; padding-top: 58px; padding-bottom: 58px; border-top: 1px solid var(--line); background: #e9e5da; }
+.real-pilot-empty h2 { margin: 12px 0 0; font: 400 34px Georgia, serif; }
+.real-pilot-empty p { max-width: 650px; color: var(--muted); line-height: 1.6; }
+.real-pilot-proofs { padding-top: 85px; padding-bottom: 90px; background: #e9e5da; }
+.real-pilot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.real-pilot-card { padding: 25px; border: 1px solid var(--ink); background: var(--surface); }
+.real-pilot-card-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.real-pilot-card-head code { color: var(--muted); font-size: 11px; }
+.real-pilot-card h3 { margin: 24px 0; font: 400 28px Georgia, serif; }
+.real-pilot-card > p { color: var(--muted); font-size: 12px; }
+.real-pilot-facts { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.real-pilot-facts span { padding: 13px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 10px; text-transform: uppercase; }
+.real-pilot-facts strong { display: block; margin-top: 6px; color: var(--ink); font-size: 12px; text-transform: none; }
 .pilot-schema { display: grid; grid-template-columns: .8fr 1.2fr; gap: 80px; padding-top: 85px; padding-bottom: 85px; background: var(--ink); color: white; }
 .pilot-schema h2 { margin: 12px 0; font: 400 40px Georgia, serif; }
 .pilot-schema p { color: #9da9a5; line-height: 1.6; }
@@ -306,6 +319,7 @@ td > span:not(.badge), .reason-cell { display: block; color: var(--muted); }
   .business-state div:nth-child(4) { border-top: 1px solid #3d4744; }
   .obligation-card { grid-template-columns: 1fr 1fr; }
   .metrics-layout { grid-template-columns: 1fr; }
+  .real-pilot-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
@@ -357,6 +371,7 @@ td > span:not(.badge), .reason-cell { display: block; color: var(--muted); }
   .metrics-hero { padding-top: 65px; }
   .metrics-rows > div { grid-template-columns: 1fr; gap: 7px; }
   .metrics-rows strong { text-align: left; }
+  .real-pilot-empty { grid-template-columns: 1fr; gap: 20px; }
   .pilot-schema { grid-template-columns: 1fr; gap: 30px; }
   .schema-grid { grid-template-columns: 1fr; }
 }

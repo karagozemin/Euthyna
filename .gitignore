@@ -12,3 +12,9 @@ out/
 **/out/
 broadcast/
 .euthyna/
+pilot-private/
+private-pilot/
+**/manifest.private.json
+**/feedback.private.json
+**/settlement.private.json
+**/result.private.json

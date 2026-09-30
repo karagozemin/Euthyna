@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "arc:first-settlement": "pnpm build && node dist/first-arc-settlement.js"
+    "arc:first-settlement": "pnpm build && node dist/first-arc-settlement.js",
+    "pilot": "pnpm build && node dist/pilot-cli.js"
   },
   "dependencies": {
     "@euthyna/chain": "workspace:*",
@@ -20,6 +21,7 @@
     "@euthyna/receipts": "workspace:*",
     "@euthyna/witness": "workspace:*",
     "fastify": "^5.6.1",
-    "viem": "^2.37.3"
+    "viem": "^2.37.3",
+    "zod": "^3.25.76"
   }
 }

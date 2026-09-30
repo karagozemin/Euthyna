@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import publicArtifact from "../../../artifacts/first-arc-settlement.json";
-import { ARC_PROOF, DEMO_METRICS, OBLIGATIONS, REAL_METRICS, SCENARIOS } from "./data";
+import { ARC_PROOF, DEMO_METRICS, OBLIGATIONS, PUBLIC_REAL_PILOTS, REAL_METRICS, SCENARIOS } from "./data";
 
 describe("reviewer demo data", () => {
   it("pins the live proof to the committed Arc settlement artifact", () => {
@@ -39,5 +39,7 @@ describe("reviewer demo data", () => {
     expect(DEMO_METRICS.obligationsProcessed).toBe(6);
     expect(REAL_METRICS.obligationsProcessed).toBe(0);
     expect(REAL_METRICS.totalPaymentVolume).toBe("0 USDC");
+    expect(REAL_METRICS.businessesOnboarded).toBe(0);
+    expect(PUBLIC_REAL_PILOTS).toEqual([]);
   });
 });

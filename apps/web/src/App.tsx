@@ -4,6 +4,7 @@ import {
   ARC_PROOF,
   DEMO_METRICS,
   OBLIGATIONS,
+  PUBLIC_REAL_PILOTS,
   REAL_METRICS,
   SCENARIOS,
   getScenario,
@@ -586,7 +587,9 @@ function ObligationRoute() {
 
 function MetricsTable({ metrics, real }: { metrics: typeof DEMO_METRICS | typeof REAL_METRICS; real?: boolean }) {
   const rows = [
+    ["Businesses onboarded", metrics.businessesOnboarded],
     ["Invoices / obligations processed", metrics.obligationsProcessed],
+    ["VERIFIED / HOLD / REJECTED", `${metrics.verified} / ${metrics.hold} / ${metrics.rejected}`],
     ["Total payment volume", metrics.totalPaymentVolume],
     ["Duplicate obligations caught", metrics.duplicateObligationsCaught],
     ["Obligations settled autonomously", metrics.obligationsSettledAutonomously],
@@ -600,9 +603,50 @@ function MetricsTable({ metrics, real }: { metrics: typeof DEMO_METRICS | typeof
     <section className={real ? "metrics-panel metrics-panel--real" : "metrics-panel"}>
       <div className="metrics-panel-head">
         <div><Badge tone={real ? "real" : "test"}>{metrics.classification}</Badge><h2>{real ? "Pilot metrics" : "Reviewer fixture metrics"}</h2></div>
-        <p>{real ? "No real business pilot has been onboarded yet." : "Synthetic/adversarial TEST cases. Never represented as traction."}</p>
+        <p>{real
+          ? metrics.obligationsProcessed === 0
+            ? "No real business pilot has been onboarded yet."
+            : "Consented, redacted aggregates from operator-assisted pilot records."
+          : "Synthetic/adversarial TEST cases. Never represented as traction."}</p>
       </div>
       <div className="metrics-rows">{rows.map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
+    </section>
+  );
+}
+
+function RealPilotProofs() {
+  if (PUBLIC_REAL_PILOTS.length === 0) {
+    return (
+      <section className="real-pilot-empty section-pad">
+        <div><Badge tone="real">REAL</Badge><h2>No public pilot proof yet.</h2></div>
+        <p>The reviewer will show a card here only after a real obligation is evaluated and the business grants redacted-metrics consent.</p>
+      </section>
+    );
+  }
+  return (
+    <section className="real-pilot-proofs section-pad">
+      <div className="section-heading">
+        <div><span className="kicker">Consented redacted proof</span><h2>REAL pilot obligations</h2></div>
+        <p>Aliases and allowlisted outcomes only. No source documents, private identifiers or payout addresses.</p>
+      </div>
+      <div className="real-pilot-grid">
+        {PUBLIC_REAL_PILOTS.map((record) => (
+          <article className="real-pilot-card" key={record.publicId}>
+            <div className="real-pilot-card-head"><Badge tone="real">REAL</Badge><code>{record.publicId}</code></div>
+            <h3>{record.businessAlias} · {record.vendorAlias}</h3>
+            <div className="real-pilot-facts">
+              <span>Amount<strong>{record.amount.label ?? "Not disclosed"}</strong></span>
+              <span>Witness<strong>{record.witnessVerdict}</strong></span>
+              <span>Agent<strong>{record.agentDecision ?? "Not eligible"}</strong></span>
+              <span>Settlement<strong>{record.settlementStatus.replaceAll("_", " ")}</strong></span>
+            </div>
+            <p>{record.reasonCode ? record.reasonCode.replaceAll("DESTINATION_CHANGED", "PAYOUT_DESTINATION_CHANGED") : "All Witness checks passed"}</p>
+            <div className="reason-codes">{record.evidenceTypes.map((type) => <Badge key={type} tone="neutral">{type}</Badge>)}</div>
+            {record.evidenceRoot ? <HashValue label="Evidence root" value={record.evidenceRoot} /> : null}
+            {record.txHash ? <HashValue label="Settlement tx" value={record.txHash} /> : null}
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -616,6 +660,7 @@ function MetricsPage() {
         <p>Every record carries a TEST or REAL classification. Demo exercises prove behavior; only pilot activity will count as adoption.</p>
       </section>
       <div className="metrics-layout section-pad"><MetricsTable metrics={DEMO_METRICS} /><MetricsTable metrics={REAL_METRICS} real /></div>
+      <RealPilotProofs />
       <section className="pilot-schema section-pad">
         <div><span className="kicker">Pilot-ready record boundary</span><h2>What a REAL record may surface</h2><p>Reviewer mode stores and displays identifiers and conclusions—not private source documents.</p></div>
         <div className="schema-grid">{["Business", "Vendor", "Obligation", "Amount", "Evidence types", "Witness verdict", "Agent decision", "Settlement result"].map((item) => <span key={item}>✓ {item}</span>)}</div>
