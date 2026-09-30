@@ -1,0 +1,67 @@
+name: Deploy reviewer demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "artifacts/first-arc-settlement.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy-reviewer-demo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @euthyna/web test
+      - run: pnpm --filter @euthyna/web build
+      - name: Materialize reviewer routes for GitHub Pages
+        run: |
+          routes=(
+            demo
+            demo/valid
+            demo/prioritization
+            demo/duplicate
+            demo/destination-change
+            metrics
+            obligations/obl_arc_test_001
+            obligations/obl_demo_critical
+            obligations/obl_demo_discount
+            obligations/obl_demo_standard
+            obligations/obl_demo_duplicate
+            obligations/obl_demo_destination_change
+          )
+          for route in "${routes[@]}"; do
+            mkdir -p "apps/web/dist/$route"
+            cp apps/web/dist/index.html "apps/web/dist/$route/index.html"
+          done
+          cp apps/web/dist/index.html apps/web/dist/404.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
