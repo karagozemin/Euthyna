@@ -8,5 +8,5 @@ npm install -g corepack@latest
 corepack enable
 corepack prepare pnpm@8.15.0 --activate
 
-pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile --prod=false
 pnpm --filter @euthyna/api... build
