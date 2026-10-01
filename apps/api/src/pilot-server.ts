@@ -37,8 +37,14 @@ export function createPilotOperatorServer(pilotsRoot = defaultPilotsRoot): Fasti
 
 async function main(): Promise<void> {
   const app = createPilotOperatorServer();
-  await app.listen({ host: "127.0.0.1", port: 8787 });
-  process.stdout.write("Euthyna private pilot API listening on http://127.0.0.1:8787\n");
+  const port = Number(process.env.PORT ?? 8787);
+  const host = process.env.PORT ? "0.0.0.0" : "127.0.0.1";
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error("PORT must be a valid TCP port");
+  }
+
+  await app.listen({ host, port });
+  process.stdout.write(`Euthyna private pilot API listening on http://${host}:${port}\n`);
   process.stdout.write("Private files remain under .euthyna/pilots and are never served.\n");
 }
 
