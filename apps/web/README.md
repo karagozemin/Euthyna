@@ -19,7 +19,12 @@ Routes:
 - `/demo/destination-change` — changed payout destination held before signing
 - `/obligations/:id` — reviewer-friendly decision detail
 - `/metrics` — explicitly separated TEST and REAL metrics
+- `/pilot` — private/local REAL intake, Witness and Agent workflow
 
 The production bundle includes only public-safe summaries and hashes. It does
 not embed environment files, private documents, signing material or Circle
 credentials.
+
+Run the private pilot UI and localhost-only API together from the repository
+root with `pnpm pilot:ui`. The hosted route fails closed when that private
+runtime is absent.

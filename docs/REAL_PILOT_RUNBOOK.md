@@ -25,6 +25,24 @@ part of that bundle.
 
 ## 1. Initialize a private record
 
+### Local operator UI
+
+The UI wraps the same private evaluator and is the recommended interactive
+path:
+
+```sh
+pnpm pilot:ui
+```
+
+Open `http://localhost:5173/pilot` (use the alternate port printed by Vite if
+5173 is occupied). The API listens only on `127.0.0.1:8787`. The wizard collects
+private business and obligation data, source documents, independent consent
+references and economic context, then writes the private record and runs the
+unchanged Witness and Agent. It never exposes a public upload endpoint and it
+never represents settlement eligibility as a submitted transaction.
+
+The CLI path below remains available for manual/operator-assisted intake.
+
 Choose a private operator ID that does not identify the business publicly:
 
 ```sh

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import {
   access,
@@ -31,11 +31,14 @@ import {
   PilotManifestSchema,
   PilotPrivateResultSchema,
   PilotSettlementRecordSchema,
+  PilotUiFeedbackInputSchema,
+  PilotUiIntakeSchema,
   PublicPilotIndexSchema,
   type PilotFeedback,
   type PilotManifest,
   type PilotPrivateResult,
   type PilotSettlementRecord,
+  type PilotUiIntake,
   type PublicPilotIndex,
 } from "./pilot-schemas.js";
 
@@ -49,6 +52,21 @@ export const PILOT_FILENAMES = {
 const PILOT_ID_PATTERN = /^pilot_[a-z0-9][a-z0-9_-]{2,63}$/;
 const PRIVATE_MODE_MASK = 0o077;
 const MAX_EVIDENCE_BYTES = 25 * 1024 * 1024;
+
+function usdcMinor(value: string): string {
+  const [whole, fraction = ""] = value.split(".");
+  return `${whole}${fraction.padEnd(6, "0")}`.replace(/^0+(?=\d)/, "");
+}
+
+function safeExtension(mimeType: string): string {
+  const extensions: Record<string, string> = {
+    "application/pdf": "pdf",
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "text/plain": "txt",
+  };
+  return extensions[mimeType] ?? "bin";
+}
 
 function assertPilotId(pilotId: string): void {
   if (!PILOT_ID_PATTERN.test(pilotId)) throw new Error("Pilot ID must match pilot_[a-z0-9_-]");
@@ -370,10 +388,227 @@ export async function evaluatePilot(pilotsRoot: string, pilotId: string): Promis
   return result;
 }
 
+export interface PilotUiResult {
+  classification: "REAL";
+  pilotId: string;
+  publicId: string;
+  privateStorage: string;
+  evidenceTypes: EvidenceType[];
+  witness: PilotPrivateResult["witness"];
+  decision: PilotPrivateResult["decision"];
+  validation: PilotPrivateResult["validation"];
+  settlementEligible: boolean;
+  settlementConsentScope: "NONE" | "ARC_TESTNET" | "REAL_USDC";
+  settlementBroadcast: false;
+}
+
+export async function intakeAndEvaluatePilot(pilotsRoot: string, rawInput: unknown): Promise<PilotUiResult> {
+  const input: PilotUiIntake = PilotUiIntakeSchema.parse(rawInput);
+  const suffix = randomUUID().replaceAll("-", "").slice(0, 16);
+  const pilotId = `pilot_${suffix}`;
+  const publicId = `real_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+  const businessId = `biz_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+  const vendorId = `vendor_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+  const obligationId = `obl_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+  const evaluatedAt = new Date().toISOString();
+  const amountMinor = usdcMinor(input.amountUsdc);
+  const lineItems = [{ description: input.lineItemDescription, amountMinor, quantityMinor: "1" }];
+  const directory = await initializePilot(pilotsRoot, pilotId);
+
+  const evidence: PilotManifest["evidence"] = [];
+  for (const document of input.documents) {
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(document.base64)) throw new Error(`Invalid base64 for ${document.type}`);
+    const bytes = Buffer.from(document.base64, "base64");
+    if (bytes.length === 0 || bytes.length > MAX_EVIDENCE_BYTES) throw new Error(`${document.type} must be between 1 byte and 25 MiB`);
+    const relativeFile = `evidence/${document.type.toLowerCase()}.${safeExtension(document.mimeType)}`;
+    await writeFile(resolve(directory, relativeFile), bytes, { mode: 0o600, flag: "wx" });
+    await chmod(resolve(directory, relativeFile), 0o600);
+
+    const commonFields = {
+      vendorId,
+      vendorName: input.privateVendorLegalName,
+      invoiceNumber: null,
+      issueDate: null,
+      dueDate: null,
+      amountMinor: null,
+      currency: null,
+      tokenDecimals: null,
+      agreementReference: input.agreementReference,
+      agreementStatus: null,
+      agreementStartsOn: null,
+      agreementEndsOn: null,
+      deliveryAccepted: null,
+      payoutDestination: null,
+      lineItems: [] as typeof lineItems,
+      ambiguousFields: [] as string[],
+    };
+    const fields = document.type === "INVOICE"
+      ? {
+          ...commonFields,
+          invoiceNumber: input.invoiceNumber,
+          issueDate: input.invoiceDate,
+          dueDate: input.dueDate,
+          amountMinor,
+          currency: "USDC",
+          tokenDecimals: 6,
+          payoutDestination: input.payoutDestination,
+          lineItems,
+        }
+      : document.type === "AGREEMENT"
+        ? {
+            ...commonFields,
+            amountMinor,
+            currency: "USDC",
+            tokenDecimals: 6,
+            agreementStatus: input.agreementActiveConfirmed ? "ACTIVE" as const : "CANCELLED" as const,
+            agreementStartsOn: input.agreementStartsOn,
+            agreementEndsOn: input.agreementEndsOn,
+            lineItems,
+          }
+        : document.type === "DELIVERY"
+          ? { ...commonFields, deliveryAccepted: input.deliveryAcceptedConfirmed }
+          : { ...commonFields, payoutDestination: input.payoutDestination };
+    evidence.push({
+      id: `artifact_${document.type.toLowerCase()}_${suffix}`,
+      type: document.type,
+      relativeFile,
+      receivedAt: evaluatedAt,
+      validUntil: null,
+      issuerName: input.privateVendorLegalName,
+      mimeType: document.mimeType,
+      fields,
+    });
+  }
+
+  const consentAt = evaluatedAt;
+  const manifest: PilotManifest = {
+    schemaVersion: "1",
+    classification: "REAL",
+    pilotId,
+    publicId,
+    evaluatedAt,
+    privateBusiness: { id: businessId, legalName: input.privateBusinessLegalName },
+    privateVendor: {
+      id: vendorId,
+      businessId,
+      legalName: input.privateVendorLegalName,
+      normalizedName: input.privateVendorLegalName.normalize("NFKC").trim().toLocaleUpperCase(),
+      status: "ACTIVE",
+      currentVersion: 1,
+    },
+    publicAliases: { business: input.businessAlias, vendor: input.vendorAlias },
+    consent: {
+      processEvidence: { granted: true, recordedAt: consentAt, operatorReference: input.processConsent.reference },
+      publicRedactedMetrics: { granted: input.publicMetricsConsent.granted, recordedAt: consentAt, operatorReference: input.publicMetricsConsent.reference },
+      settlement: {
+        granted: input.settlementConsent.granted,
+        recordedAt: consentAt,
+        operatorReference: input.settlementConsent.reference,
+        scope: input.settlementConsent.scope,
+      },
+    },
+    publicDisclosure: {
+      amount: input.publicMetricsConsent.granted ? input.amountDisclosure : "NONE",
+      amountRangeLabel: input.publicMetricsConsent.granted && input.amountDisclosure === "RANGE" ? input.amountRangeLabel : null,
+      evidenceRoot: input.publicMetricsConsent.granted && input.discloseEvidenceRoot,
+      settlementTxHash: input.publicMetricsConsent.granted && input.discloseSettlementTxHash,
+      includeInAggregateVolume: input.publicMetricsConsent.granted && input.includeInAggregateVolume,
+    },
+    obligation: {
+      id: obligationId,
+      businessId,
+      vendorId,
+      invoiceNumber: input.invoiceNumber,
+      invoiceDate: input.invoiceDate,
+      agreementReference: input.agreementReference,
+      amountMinor,
+      currency: "USDC",
+      tokenDecimals: 6,
+      dueDate: input.dueDate,
+      requestedPayoutDestination: input.payoutDestination,
+      partialPaymentAllowed: false,
+      revisionOfObligationId: null,
+      status: "EVIDENCE_PENDING",
+      lineItems,
+      settledTxHash: null,
+    },
+    verifiedDestination: input.destinationVerified
+      ? {
+          vendorId,
+          version: 1,
+          chain: input.settlementConsent.scope === "REAL_USDC" ? "ARC" : "ARC_TESTNET",
+          address: input.payoutDestination,
+          status: "VERIFIED",
+          changeKind: "INITIAL_ONBOARDING",
+          verificationMethod: "OPERATOR_OUT_OF_BAND",
+          approvedBy: "private_operator",
+          approvedAt: evaluatedAt,
+          firstSeenAt: evaluatedAt,
+        }
+      : null,
+    evidence,
+    witnessPolicy: {
+      policyVersion: 1,
+      requiredEvidenceTypes: ["INVOICE", "AGREEMENT", "DELIVERY"],
+      amountToleranceMinor: "0",
+      maxEvidenceAgeDays: 30,
+    },
+    planning: {
+      businessState: {
+        businessId,
+        asOf: evaluatedAt,
+        availableBalanceMinor: usdcMinor(input.availableBalanceUsdc),
+        minimumReserveMinor: usdcMinor(input.minimumReserveUsdc),
+        approvalThresholdMinor: usdcMinor(input.approvalThresholdUsdc),
+        currency: "USDC",
+        tokenDecimals: 6,
+        expectedInflows: [],
+      },
+      vendorCriticality: input.vendorCriticality,
+      lateFeeBps: 0,
+      earlyPayDiscountBps: 0,
+      earlyPayDeadline: null,
+    },
+  };
+
+  const validatedManifest = PilotManifestSchema.parse(manifest);
+  await writePrivateJson(resolve(directory, PILOT_FILENAMES.manifest), validatedManifest);
+  const result = await evaluatePilot(pilotsRoot, pilotId);
+  return {
+    classification: "REAL",
+    pilotId,
+    publicId,
+    privateStorage: `.euthyna/pilots/${pilotId}`,
+    evidenceTypes: result.evidenceTypes,
+    witness: result.witness,
+    decision: result.decision,
+    validation: result.validation,
+    settlementEligible: result.settlementEligible,
+    settlementConsentScope: input.settlementConsent.scope,
+    settlementBroadcast: false,
+  };
+}
+
 export async function validatePilotFeedback(pilotsRoot: string, pilotId: string): Promise<PilotFeedback> {
   const directory = pilotDirectory(pilotsRoot, pilotId);
   const feedback = PilotFeedbackSchema.parse(await readPrivateJson(resolve(directory, PILOT_FILENAMES.feedback)));
   if (feedback.pilotId !== pilotId) throw new Error("Feedback pilotId does not match directory");
+  return feedback;
+}
+
+export async function recordPilotFeedback(pilotsRoot: string, pilotId: string, rawInput: unknown): Promise<PilotFeedback> {
+  const directory = pilotDirectory(pilotsRoot, pilotId);
+  if (!(await pathExists(resolve(directory, PILOT_FILENAMES.result)))) throw new Error("Pilot must be evaluated before feedback is recorded");
+  const input = PilotUiFeedbackInputSchema.parse(rawInput);
+  const feedback = PilotFeedbackSchema.parse({
+    schemaVersion: "1",
+    classification: "REAL",
+    pilotId,
+    responseStatus: "CAPTURED",
+    capturedAt: new Date().toISOString(),
+    ...input,
+  });
+  await writePrivateJson(resolve(directory, PILOT_FILENAMES.feedback), feedback);
   return feedback;
 }
 

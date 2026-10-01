@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "arc:first-settlement": "pnpm build && node dist/first-arc-settlement.js",
-    "pilot": "pnpm build && node dist/pilot-cli.js"
+    "pilot": "pnpm build && node dist/pilot-cli.js",
+    "pilot:server": "pnpm build && node dist/pilot-server.js",
+    "pilot:dev": "pnpm build && node dist/pilot-server.js"
   },
   "dependencies": {
     "@euthyna/chain": "workspace:*",

@@ -177,6 +177,69 @@ export const PilotPrivateResultSchema = z.object({
 }).strict();
 export type PilotPrivateResult = z.infer<typeof PilotPrivateResultSchema>;
 
+const UsdcDecimalSchema = z.string().regex(/^(0|[1-9][0-9]*)(\.[0-9]{1,6})?$/, "Use a USDC value with at most 6 decimals");
+const PilotDocumentSchema = z.object({
+  type: z.enum(["INVOICE", "AGREEMENT", "DELIVERY", "PAYMENT_INSTRUCTION"]),
+  fileName: z.string().min(1).max(255),
+  mimeType: z.string().min(1).max(160),
+  base64: z.string().min(1),
+}).strict();
+
+export const PilotUiIntakeSchema = z.object({
+  privateBusinessLegalName: z.string().min(1).max(500),
+  privateVendorLegalName: z.string().min(1).max(500),
+  businessAlias: z.string().min(1).max(80),
+  vendorAlias: z.string().min(1).max(80),
+  invoiceNumber: z.string().min(1).max(160),
+  invoiceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  agreementReference: z.string().min(1).max(300),
+  agreementStartsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  agreementEndsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  agreementActiveConfirmed: z.boolean(),
+  deliveryAcceptedConfirmed: z.boolean(),
+  amountUsdc: UsdcDecimalSchema.refine((value) => Number(value) > 0, "Obligation amount must be positive"),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  payoutDestination: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  destinationVerified: z.boolean(),
+  lineItemDescription: z.string().min(1).max(1_000),
+  availableBalanceUsdc: UsdcDecimalSchema,
+  minimumReserveUsdc: UsdcDecimalSchema,
+  approvalThresholdUsdc: UsdcDecimalSchema,
+  vendorCriticality: z.number().int().min(1).max(5),
+  processConsent: z.object({ granted: z.literal(true), reference: z.string().min(1).max(160) }).strict(),
+  publicMetricsConsent: z.object({ granted: z.boolean(), reference: z.string().min(1).max(160) }).strict(),
+  settlementConsent: z.object({
+    granted: z.boolean(),
+    reference: z.string().min(1).max(160),
+    scope: z.enum(["NONE", "ARC_TESTNET", "REAL_USDC"]),
+  }).strict(),
+  amountDisclosure: z.enum(["NONE", "EXACT", "RANGE"]),
+  amountRangeLabel: z.string().max(80).nullable(),
+  discloseEvidenceRoot: z.boolean(),
+  discloseSettlementTxHash: z.boolean(),
+  includeInAggregateVolume: z.boolean(),
+  documents: z.array(PilotDocumentSchema).min(1).max(4),
+}).strict().superRefine((value, context) => {
+  if (new Set(value.documents.map((document) => document.type)).size !== value.documents.length) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["documents"], message: "Upload at most one document per evidence class" });
+  }
+  if (value.settlementConsent.granted === (value.settlementConsent.scope === "NONE")) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["settlementConsent", "scope"], message: "Settlement scope must match consent" });
+  }
+  if (value.amountDisclosure === "RANGE" && !value.amountRangeLabel) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["amountRangeLabel"], message: "Amount range label is required" });
+  }
+});
+export type PilotUiIntake = z.infer<typeof PilotUiIntakeSchema>;
+
+export const PilotUiFeedbackInputSchema = z.object({
+  witnessAgreement: AgreementAnswerSchema.exclude(["NOT_ASKED"]),
+  agentAgreement: AgreementAnswerSchema,
+  preferredAction: z.enum(["PAY_NOW", "SCHEDULE", "HOLD", "REJECT", "ESCALATE", "NO_ACTION"]),
+  frictionNotesPrivate: z.string().max(5_000),
+  wouldUseAgain: z.enum(["YES", "NO", "MAYBE"]),
+}).strict();
+
 const PublicPilotRecordSchema = z.object({
   publicId: PublicIdSchema,
   classification: z.literal("REAL"),

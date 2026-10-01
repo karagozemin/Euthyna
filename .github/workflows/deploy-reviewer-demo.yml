@@ -47,6 +47,7 @@ jobs:
             demo/duplicate
             demo/destination-change
             metrics
+            pilot
             obligations/obl_arc_test_001
             obligations/obl_demo_critical
             obligations/obl_demo_discount

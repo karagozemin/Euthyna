@@ -1,12 +1,14 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   evaluatePilot,
   initializePilot,
+  intakeAndEvaluatePilot,
   PILOT_FILENAMES,
   publishPilotIndex,
+  recordPilotFeedback,
   recordPilotSettlement,
   validatePilotFeedback,
 } from "./pilot.js";
@@ -158,6 +160,74 @@ async function preparePilot(mutator?: (manifest: PilotManifest) => void) {
 }
 
 describe("REAL pilot operator workflow", () => {
+  it("accepts a private UI intake and evaluates the actual uploaded bytes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "euthyna-pilot-ui-test-"));
+    privateRoots.push(root);
+    const pilotsRoot = resolve(root, "pilots");
+    const privateBytes = Buffer.from("private source document bytes").toString("base64");
+    const relativeDay = (days: number) => {
+      const date = new Date();
+      date.setUTCDate(date.getUTCDate() + days);
+      return date.toISOString().slice(0, 10);
+    };
+    const result = await intakeAndEvaluatePilot(pilotsRoot, {
+      privateBusinessLegalName: "Private Buyer Incorporated",
+      privateVendorLegalName: "Private Vendor Limited",
+      businessAlias: "Pilot Business UI",
+      vendorAlias: "Supplier UI",
+      invoiceNumber: "INV-REAL-UI-1",
+      invoiceDate: relativeDay(0),
+      agreementReference: "PO-REAL-UI-1",
+      agreementStartsOn: relativeDay(-30),
+      agreementEndsOn: relativeDay(365),
+      agreementActiveConfirmed: true,
+      deliveryAcceptedConfirmed: true,
+      amountUsdc: "125.50",
+      dueDate: relativeDay(1),
+      payoutDestination: destination,
+      destinationVerified: true,
+      lineItemDescription: "Real pilot service delivery",
+      availableBalanceUsdc: "500",
+      minimumReserveUsdc: "100",
+      approvalThresholdUsdc: "200",
+      vendorCriticality: 4,
+      processConsent: { granted: true, reference: "private-ui-process-consent" },
+      publicMetricsConsent: { granted: false, reference: "not-granted" },
+      settlementConsent: { granted: false, reference: "not-granted", scope: "NONE" },
+      amountDisclosure: "NONE",
+      amountRangeLabel: null,
+      discloseEvidenceRoot: false,
+      discloseSettlementTxHash: false,
+      includeInAggregateVolume: false,
+      documents: (["INVOICE", "AGREEMENT", "DELIVERY"] as const).map((type) => ({
+        type,
+        fileName: `${type.toLowerCase()}.pdf`,
+        mimeType: "application/pdf",
+        base64: privateBytes,
+      })),
+    });
+
+    expect(result).toMatchObject({
+      classification: "REAL",
+      witness: { verdict: "VERIFIED" },
+      decision: { action: "PAY_NOW" },
+      settlementEligible: false,
+      settlementBroadcast: false,
+    });
+    const evidenceFile = resolve(pilotsRoot, result.pilotId, "evidence", "invoice.pdf");
+    expect(await readFile(evidenceFile, "utf8")).toBe("private source document bytes");
+    expect((await stat(evidenceFile)).mode & 0o077).toBe(0);
+    const feedback = await recordPilotFeedback(pilotsRoot, result.pilotId, {
+      witnessAgreement: "YES",
+      agentAgreement: "PARTIAL",
+      preferredAction: "SCHEDULE",
+      frictionNotesPrivate: "The consent reference took time to locate.",
+      wouldUseAgain: "MAYBE",
+    });
+    expect(feedback).toMatchObject({ classification: "REAL", responseStatus: "CAPTURED", agentAgreement: "PARTIAL" });
+    expect((await stat(resolve(pilotsRoot, result.pilotId, PILOT_FILENAMES.feedback))).mode & 0o077).toBe(0);
+  });
+
   it("refuses to process evidence without explicit consent", async () => {
     const pilot = await preparePilot((manifest) => { manifest.consent.processEvidence.granted = false; });
     await expect(evaluatePilot(pilot.pilotsRoot, pilot.pilotId)).rejects.toThrow(/consent is not granted/);

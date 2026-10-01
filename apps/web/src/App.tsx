@@ -14,10 +14,12 @@ import {
   type WitnessCheck,
 } from "./data";
 import { fetchArcLiveSnapshot, type ArcLiveSnapshot } from "./arc-live";
+import { PilotPageContent } from "./PilotPage";
 
 const navItems = [
   { to: "/demo", label: "Reviewer demo" },
   { to: "/metrics", label: "Metrics" },
+  { to: "/pilot", label: "Live pilot" },
 ];
 
 function ArrowIcon() {
@@ -38,7 +40,7 @@ function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: str
   return <span className={`badge badge--${tone}`}>{children}</span>;
 }
 
-function AppShell({ children }: { children: ReactNode }) {
+function AppShell({ children, mode = "reviewer" }: { children: ReactNode; mode?: "reviewer" | "pilot" }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -80,8 +82,8 @@ function AppShell({ children }: { children: ReactNode }) {
           <p>Proof of obligation for autonomous payments.</p>
         </div>
         <div className="footer-meta">
-          <Badge tone="test">TEST — Arc Testnet</Badge>
-          <span>No private evidence is exposed in reviewer mode.</span>
+          <Badge tone={mode === "pilot" ? "real" : "test"}>{mode === "pilot" ? "PRIVATE · REAL intake" : "TEST — Arc Testnet"}</Badge>
+          <span>{mode === "pilot" ? "Private evidence stays in the local operator runtime." : "No private evidence is exposed in reviewer mode."}</span>
         </div>
       </footer>
     </div>
@@ -755,6 +757,10 @@ function MetricsPage() {
   );
 }
 
+function PilotPage() {
+  return <AppShell mode="pilot"><PilotPageContent /></AppShell>;
+}
+
 function NotFound() {
   return (
     <AppShell><section className="not-found section-pad"><span className="kicker">404</span><h1>This proof path does not exist.</h1><p>The reviewer demo is intact; this URL is not one of its public routes.</p><Link className="button button--primary" to="/demo">Return to reviewer demo</Link></section></AppShell>
@@ -769,6 +775,7 @@ export function App() {
       <Route path="/demo/:slug" element={<ScenarioRoute />} />
       <Route path="/obligations/:id" element={<ObligationRoute />} />
       <Route path="/metrics" element={<MetricsPage />} />
+      <Route path="/pilot" element={<PilotPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
