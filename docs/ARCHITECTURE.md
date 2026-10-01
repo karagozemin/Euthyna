@@ -471,6 +471,8 @@ boundary.
 ### Frontend routing
 
 - Vite development proxies `/pilot-api` to `127.0.0.1:8787`.
+- Vercel imports `apps/web` as a standalone Vite project; the API remains a
+  separate Render deployment rather than a Vercel service.
 - Vercel proxies `/pilot-api/:path*` to the configured Render origin.
 - The browser uses a relative API path, so no CORS trust is required.
 - The SPA fallback routes all remaining paths to `index.html`.

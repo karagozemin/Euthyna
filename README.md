@@ -195,21 +195,26 @@ reviewer fixture invariants.
 
 ### Reviewer and pilot frontend — Vercel
 
-The repository-root [`vercel.json`](vercel.json) contains the production build,
-SPA fallback, and pilot proxy configuration.
+Import the detected `web` application as a **single project**. Do not import the
+repository as a Vercel multi-service project: the API is deployed separately on
+Render. [`apps/web/vercel.json`](apps/web/vercel.json) contains the production
+build, SPA fallback, and pilot proxy configuration.
 
 | Setting | Value |
 | --- | --- |
-| Root directory | repository root |
-| Framework preset | Other |
+| Root directory | `apps/web` |
+| Framework preset | Vite |
 | Install command | `pnpm install --frozen-lockfile` |
-| Build command | `pnpm --filter @euthyna/web build` |
-| Output directory | `apps/web/dist` |
+| Build command | `pnpm build` |
+| Output directory | `dist` |
 | Node.js | 22.x |
 | Required Vercel environment variables | none |
 
 In production, Vercel proxies `/pilot-api/*` to the configured Render service.
 Local Vite development keeps the same browser path and proxies it to localhost.
+The repository-root `vercel.json` remains available for CLI/repository-root
+deployments, while the app-local configuration is authoritative for Vercel's
+single-project monorepo import flow.
 
 ### Pilot evaluation API — Render
 
