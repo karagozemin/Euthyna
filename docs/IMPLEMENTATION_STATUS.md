@@ -21,10 +21,10 @@ The authoritative product specification is `Euthyna_Full_PRD_Tameion_2026.docx`.
 | 3 | Database, audit events, orchestration API | §§18–19, FR-013–016 | Schema, transactional local repository, audit, and route surface implemented |
 | 4 | Decision Agent and plan validator | FR-009–010, AC-07–08 | Implemented baseline |
 | 5 | Attestation and `ObligationVault` | FR-011–012, AC-09–10 | Implemented baseline |
-| 6 | Arc/Circle execution and reconciliation | §13, AC-11 | Circle adapter + local end-to-end reconciliation implemented; live execution blocked on environment configuration |
+| 6 | Arc/Circle execution and reconciliation | §13, AC-11 | Implemented; deployed and reconciled on Arc Testnet, mainnet operations pending |
 | 7 | Canonical decision receipt | §22, AC-12 | Implemented baseline |
-| 8 | Reviewer dashboard and four scenarios | §§20, 26, AC-13–14 | Not started |
-| 9 | Full invariant/adversarial/deployment pass | §27, AC-15–18 | Not started |
+| 8 | Reviewer dashboard and four scenarios | §§20, 26, AC-13–14 | Implemented with explicit TEST/REAL classification |
+| 9 | Full invariant/adversarial/deployment pass | §27, AC-15–18 | Core invariant, adversarial, contract, crash/retry, and deployment coverage implemented; production IAM and durable persistence pending |
 
 ## Normative execution order
 

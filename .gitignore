@@ -18,3 +18,5 @@ private-pilot/
 **/feedback.private.json
 **/settlement.private.json
 **/result.private.json
+.vercel
+.env*

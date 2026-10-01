@@ -2,222 +2,308 @@
   <img src="euthyna.png" alt="Euthyna" width="280">
 </p>
 
-# Euthyna
+<h1 align="center">Euthyna</h1>
 
-> **Before an agent can pay, Euthyna proves there is something to pay for.**
+<p align="center">
+  <strong>Proof-of-obligation infrastructure for agentic payments.</strong><br>
+  Before an agent can pay, Euthyna proves there is something to pay for.
+</p>
 
-Euthyna is a proof-of-obligation payment agent. A deterministic Evidence
-Witness establishes business truth; an Agent decides timing and priority; a
-versioned vault contract holds payment authority; Circle and Arc execute the
-authorized settlement.
+<p align="center">
+  <a href="https://karagozemin.github.io/Euthyna/">Reviewer app</a> ·
+  <a href="https://karagozemin.github.io/Euthyna/demo/">No-login demo</a> ·
+  <a href="https://explorer.testnet.arc.io/address/0x61322f6e21ec822cb220b145fb9184265a580b12">Verified Arc vault</a> ·
+  <a href="https://explorer.testnet.arc.io/tx/0xb386d3041613b028bc6aa88518e8a010b01b1c0eb59aca632da4eefc4fac6b42">Settlement proof</a>
+</p>
 
-[Open the live reviewer app](https://karagozemin.github.io/Euthyna/) ·
-[Start the no-login demo](https://karagozemin.github.io/Euthyna/demo/) ·
-[Verified Arc vault](https://explorer.testnet.arc.io/address/0x61322f6e21ec822cb220b145fb9184265a580b12) ·
-[First Arc settlement](https://explorer.testnet.arc.io/tx/0xb386d3041613b028bc6aa88518e8a010b01b1c0eb59aca632da4eefc4fac6b42)
+> [!IMPORTANT]
+> The public settlement and bundled reviewer scenarios are labelled
+> **TEST — Arc Testnet**. They prove system behavior, not customer traction.
+> The committed REAL pilot index currently reports zero businesses, zero
+> obligations, and zero payment volume.
 
-> The public settlement and every bundled reviewer scenario are labelled
-> **TEST — Arc Testnet**. They prove system behavior; they are not presented as
-> customer traction. REAL pilot metrics currently remain zero.
+## What Euthyna does
 
-## The 90-second judge path
+Wallet limits answer _how much_ an agent may transfer. They do not establish
+whether an invoice is legitimate, delivery occurred, the obligation was already
+paid, or a payout destination was silently replaced.
 
-1. Read the thesis and role separation at `/demo`.
-2. Run **Valid obligation** and open its real Arc Testnet receipt.
-3. Run **Constrained-cash prioritization** to see the Agent preserve reserve.
-4. Run **Duplicate obligation** and **Payout destination changed**; both move
-   `$0` and stop before signing.
-5. Open **Metrics** to see TEST and REAL activity separated explicitly.
+Euthyna separates those questions into independent control layers:
 
-No login, wallet or setup is required.
+1. An **Evidence Witness** deterministically establishes business truth.
+2. A **Decision Agent** chooses timing and priority only for verified obligations.
+3. A **plan validator** independently rejects mutated or policy-breaking output.
+4. A **Witness attestation** binds the exact payment meaning and versioned context.
+5. **ObligationVault** is the final authority that can release funds once.
+6. **Circle and Arc** execute and reconcile the exact authorized call.
 
-## Architecture
+The result is a reviewable trail from private evidence to an onchain settlement,
+without giving a model unilateral payment authority.
+
+## System at a glance
 
 ```mermaid
 flowchart LR
-    E[Evidence<br/>invoice + agreement + delivery]
-    W[Evidence Witness<br/>business truth]
-    A[Decision Agent<br/>economic judgment]
-    V[ObligationVault<br/>authority]
-    X[Circle + Arc<br/>execution and settlement]
-
-    E --> W
-    W -->|VERIFIED only| A
-    W -->|HOLD / REJECT| S[$0 moved]
-    A -->|validated plan| V
-    V -->|one-time authorization| X
+    E[Private evidence] --> W[Evidence Witness<br/>W01–W10]
+    W -->|VERIFIED| A[Decision Agent]
+    W -->|HOLD or REJECT| Z[Stop<br/>$0 moved]
+    A --> P[Deterministic<br/>plan validator]
+    P -->|valid| S[EIP-712 Witness<br/>attestation]
+    P -->|invalid| Z
+    S --> V[ObligationVault]
+    V --> C[Circle execution]
+    C --> R[Arc settlement<br/>and reconciliation]
 ```
 
-**Evidence → Witness → Agent Decision → Authorization → Arc Settlement**
+**Evidence → Witness → Agent → Validation → Authorization → Settlement**
 
-- **Witness = business truth.** It checks the underlying obligation and never
-  decides whether paying now is economically wise.
-- **Agent = economic judgment.** It prioritizes only VERIFIED obligations and
-  cannot alter their amount, payee or currency.
-- **Contract = authority.** It enforces the exact attestation, versions, cap,
-  destination and replay boundaries.
-- **Arc / Circle = execution and settlement.** Circle submits the prepared
-  contract call; reconciliation proves the exact onchain outcome.
+For component boundaries, runtime modes, data flow, trust assumptions, contract
+checks, deployment topology, and known limitations, read the
+**[Architecture Guide](docs/ARCHITECTURE.md)**.
 
-## Four reviewer scenarios
+## The trust split
 
-| Scenario | Business question | Expected result | Money moved |
+| Layer | Owns | Must never do |
+| --- | --- | --- |
+| Evidence normalization | Typed fields, provenance, canonical hashes | Declare an obligation valid |
+| Evidence Witness | W01–W10, `VERIFIED` / `HOLD` / `REJECT`, evidence root | Choose payment timing or move funds |
+| Decision Agent | Priority, timing, reserve-aware recommendation | Change verified amount, token, or payee |
+| Plan validator | Mechanical policy and invariant enforcement | Invent evidence or sign authorization |
+| Witness signer | Short-lived EIP-712 authorization | Sign a failed Witness or invalid plan |
+| ObligationVault | Exact authorization enforcement and token release | Interpret invoices or trust model prose |
+| Circle / Arc executor | Submit, finalize, and reconcile the prepared call | Replace the attested transaction meaning |
+
+## What is implemented
+
+- Canonical TypeScript domain schemas and integer-only money handling.
+- Deterministic evidence fingerprints, roots, and ten Witness checks.
+- Versioned vendor destinations with destination-change HOLD behavior.
+- A bounded reserve-aware Decision Agent and independent plan validator.
+- EIP-712 Witness authorizations with explicit chain and vault binding.
+- A Solidity vault with business, vendor, policy, signer, rules, cap, approval,
+  expiry, token, destination, and replay enforcement.
+- Circle developer-controlled wallet execution on Arc and event-level
+  reconciliation.
+- Canonical pre-authorization commitments and final decision receipts.
+- A reviewer application with four deterministic adversarial scenarios.
+- A REAL pilot intake/evaluation path that never broadcasts settlement.
+- Drizzle/PostgreSQL schema definitions and an in-memory transactional
+  repository used by the current orchestration tests.
+
+The generic production API service implementation, durable pilot object storage,
+API authentication, rate limiting, and worker runtime are not complete. See
+[Current limitations](#current-limitations).
+
+## Reviewer scenarios
+
+| Scenario | Question | Expected result | Money moved |
 | --- | --- | --- | ---: |
-| A — Valid obligation | Do invoice, agreement and delivery agree? | `VERIFIED → PAY_NOW → SETTLED` | `0.001 USDC` on Arc Testnet |
-| B — Agentic prioritization | What should be paid when liquidity is constrained? | `1 PAY_NOW · 2 SCHEDULE` while reserve remains intact | `$0` decision preview |
-| C — Duplicate obligation | Is a reformatted invoice the same underlying debt? | `REJECTED · DUPLICATE_OBLIGATION` | `$0` |
-| D — Destination change | Did a legitimate invoice request a new payout address? | `HOLD · PAYOUT_DESTINATION_CHANGED` | `$0` |
+| Valid obligation | Do invoice, agreement, delivery, and destination agree? | `VERIFIED → PAY_NOW → SETTLED` | `0.001 USDC` on Arc Testnet |
+| Constrained cash | What should be paid without breaching reserve? | `1 PAY_NOW · 2 SCHEDULE` | `$0` decision preview |
+| Duplicate obligation | Is a reformatted invoice the same debt? | `REJECT · DUPLICATE_OBLIGATION` | `$0` |
+| Destination change | Did a valid invoice request a new address? | `HOLD · DESTINATION_CHANGED` | `$0` |
 
-Every detail view exposes the obligation, redacted evidence metadata, W01–W10,
-Agent rationale, authorization boundary, settlement state and audit receipt.
-HOLD and REJECT cases are first-class outcomes, not hidden exceptions.
+Recommended reviewer path:
 
-## The problem
+1. Open `/demo` and read the role separation.
+2. Run **Valid obligation** and inspect the Arc receipt.
+3. Run **Constrained-cash prioritization** and inspect the reserve decision.
+4. Run the duplicate and destination-change cases; both stop before signing.
+5. Open `/metrics` and verify that TEST and REAL activity remain separated.
 
-Wallet limits and spending budgets answer **how much** an agent may transfer.
-They do not prove **why** a payment exists, whether delivery occurred, whether
-an invoice is a duplicate, or whether a payout address was quietly replaced.
-
-An autonomous payment system needs both economic judgment and business truth,
-without allowing either one to become unilateral payment authority. Euthyna
-keeps those responsibilities separate and produces a reviewer-readable trail
-from evidence to settlement.
-
-## Core components
-
-### Evidence Witness
-
-The Witness deterministically evaluates ten checks:
-
-- required evidence classes;
-- vendor identity;
-- amount and currency agreement;
-- agreement validity;
-- delivery acceptance;
-- semantic duplicate detection;
-- verified payout destination;
-- prior settlement;
-- evidence freshness and versions;
-- resolved, unambiguous payment fields.
-
-It emits `VERIFIED`, `HOLD` or `REJECT` with an evidence root, reason code,
-expected/observed values and required human action where relevant.
-
-### Decision Agent
-
-The Agent sees only VERIFIED obligations. It ranks business priorities such as
-due dates, vendor criticality, discounts, expected inflows and minimum reserve.
-A deterministic validator rejects any attempt to change amount, payee,
-currency, approval boundary or reserve policy.
-
-### ObligationVault
-
-The Arc contract binds an authorization to the business, obligation, operation,
-vendor version, payee, token, amount, evidence root, decision commitment,
-policy/rules/witness versions, expiry, chain and vault. Obligation and operation
-IDs are one-time replay keys.
-
-### Arc and Circle
-
-Circle's managed contract-execution path submits only the prepared vault call.
-Arc Testnet executes it against the official USDC contract. Reconciliation
-matches the emitted operation, vendor, payee, amount and cryptographic
-commitments before producing the final receipt.
+No login, wallet, or local setup is required for the public demo.
 
 ## Public Arc Testnet proof
 
-- Vault: `0x61322f6e21ec822cb220b145fb9184265a580b12`
-- Settlement: `0xb386d3041613b028bc6aa88518e8a010b01b1c0eb59aca632da4eefc4fac6b42`
-- Settlement block: `64819572`
-- Amount: `0.001 USDC`
-- Result: `RECONCILED`
-- Crash/retry duplicate amount: `0`
+| Field | Value |
+| --- | --- |
+| Network | Arc Testnet (`5042002`) |
+| Vault | [`0x6132…b12`](https://explorer.testnet.arc.io/address/0x61322f6e21ec822cb220b145fb9184265a580b12) |
+| Settlement | [`0xb386…b42`](https://explorer.testnet.arc.io/tx/0xb386d3041613b028bc6aa88518e8a010b01b1c0eb59aca632da4eefc4fac6b42) |
+| Block | `64819572` |
+| Amount | `0.001 USDC` |
+| Result | `RECONCILED` |
+| Duplicate amount after crash/retry | `0` |
 
-The reproducible flow and complete public hashes are in
-[`docs/FIRST_ARC_SETTLEMENT.md`](docs/FIRST_ARC_SETTLEMENT.md) and
-[`artifacts/first-arc-settlement.json`](artifacts/first-arc-settlement.json).
-Private documents, API credentials, entity secrets and signing keys are never
-part of the public artifact or reviewer bundle.
+The reproducible sequence and public hashes are documented in
+[First Arc Settlement](docs/FIRST_ARC_SETTLEMENT.md). The machine-readable proof
+is stored in [`artifacts/first-arc-settlement.json`](artifacts/first-arc-settlement.json).
 
-## Security properties
+## Quick start
 
-- Raw model output is never an authorization input.
-- HOLD and REJECT obligations never reach the signing path.
-- The Witness cannot make economic scheduling decisions.
-- The Agent cannot change verified payment facts.
-- Destination rotation invalidates stale authorizations through vendor version.
-- Witness, rules and policy rotations invalidate stale authorizations.
-- Obligation and operation replay protections are enforced onchain.
-- Crash-safe reconciliation finds the existing settlement instead of paying
-  twice.
-- Production witness signing is an interface boundary; raw private keys fail
-  closed in production.
-- Public reviewer data is classified `TEST` or `REAL`; source evidence stays
-  private.
+### Requirements
 
-## Metrics and traction
+- Node.js 20 or newer
+- pnpm 8.15.0 through Corepack
+- Foundry for Solidity build and contract tests
+- Arc Foundry only for Arc-specific deployment and simulation
 
-The reviewer metrics view follows the Tameion RFB language: obligations
-processed, payment volume, duplicates caught, autonomous settlements, decisions
-versus escalations, human agreement rate, HOLD events, destination changes and
-settlement success rate.
-
-Synthetic and adversarial fixtures appear only under **TEST**. There are
-currently no claimed REAL pilot obligations or payment volume. A pilot record
-can expose redacted business/vendor/obligation metadata, amount, evidence types,
-verdict, decision and settlement result without exposing private documents.
-
-The operator-assisted REAL pilot path is documented in
-[`docs/REAL_PILOT_RUNBOOK.md`](docs/REAL_PILOT_RUNBOOK.md). Private documents and
-consent records stay under ignored `.euthyna/pilots/`; a strict publisher emits
-only [`artifacts/pilots/public-index.json`](artifacts/pilots/public-index.json).
-The committed index currently reports zero REAL businesses and obligations.
-
-The same private workflow is available as an operator UI:
-
-```sh
-pnpm pilot:ui
+```bash
+corepack enable
+pnpm install --frozen-lockfile
 ```
 
-Open `http://localhost:5173/pilot` (or the next port printed by Vite). The API
-binds only to `127.0.0.1:8787`; uploads are written with private permissions and
-evaluated by the unchanged W01–W10 and bounded Agent path. In the Vercel
-deployment, `/pilot-api/*` is proxied to the Render service configured in
-`vercel.json`, so the same workflow is available at the hosted `/pilot` route.
-Settlement eligibility is shown truthfully; no transaction is broadcast unless
-a business-bound vault and the separate operator executor are configured.
+### Run the reviewer application
 
-## Tests
-
-The repository exercises the complete trust path:
-
-- canonical evidence and decision commitments;
-- W01–W10, including semantic duplicates and payout changes;
-- bounded Agent planning and deterministic validation;
-- Circle managed transaction preparation and crash reconciliation;
-- immutable receipts and audit chaining;
-- ObligationVault replay, version, cap, expiry and signature boundaries;
-- reviewer scenario invariants pinned to the committed Arc proof artifact.
-
-```sh
-pnpm typecheck
-pnpm test
-pnpm build
-```
-
-## Local development
-
-Requirements: Node.js 20+, pnpm 8.15 and Foundry for contract tests.
-
-```sh
-pnpm install
+```bash
 pnpm --filter @euthyna/web dev
 ```
 
-Open `http://localhost:5173/demo`. The browser demo is deterministic, needs no
-credentials and never broadcasts a transaction. The live Arc fixture is
-read-only public proof.
+Open `http://localhost:5173/demo`.
 
-For the hardened Arc Testnet deployment, preflight, Circle smoke, intentional
-crash and retry workflow, follow
-[`docs/FIRST_ARC_SETTLEMENT.md`](docs/FIRST_ARC_SETTLEMENT.md).
+### Run the private pilot locally
+
+```bash
+pnpm pilot:ui
+```
+
+This starts the Vite application and the private pilot API together. Open
+`http://localhost:5173/pilot`; Vite proxies `/pilot-api/*` to
+`127.0.0.1:8787`.
+
+The pilot path:
+
+- accepts operator-confirmed evidence and consent;
+- stores private records below the gitignored `.euthyna/pilots/` directory;
+- executes the same Witness and bounded Agent logic;
+- reports settlement eligibility truthfully; and
+- never signs or broadcasts a transaction.
+
+See the [REAL Pilot Runbook](docs/REAL_PILOT_RUNBOOK.md) before handling any
+non-synthetic material.
+
+## Test and build
+
+```bash
+# Complete TypeScript + Solidity suite
+pnpm typecheck
+pnpm test
+pnpm build
+
+# Focused packages
+pnpm --filter @euthyna/web test
+pnpm --filter @euthyna/api... build
+forge test --root contracts
+```
+
+The suite covers canonicalization, W01–W10, duplicate and destination attacks,
+plan validation, authorization boundaries, vault replay/version/cap/expiry
+checks, Circle identity checks, crash-safe reconciliation, audit chaining, and
+reviewer fixture invariants.
+
+## Deployment
+
+### Reviewer and pilot frontend — Vercel
+
+The repository-root [`vercel.json`](vercel.json) contains the production build,
+SPA fallback, and pilot proxy configuration.
+
+| Setting | Value |
+| --- | --- |
+| Root directory | repository root |
+| Framework preset | Other |
+| Install command | `pnpm install --frozen-lockfile` |
+| Build command | `pnpm --filter @euthyna/web build` |
+| Output directory | `apps/web/dist` |
+| Node.js | 22.x |
+| Required Vercel environment variables | none |
+
+In production, Vercel proxies `/pilot-api/*` to the configured Render service.
+Local Vite development keeps the same browser path and proxies it to localhost.
+
+### Pilot evaluation API — Render
+
+```text
+Build:  bash scripts/render-build.sh
+Start:  node apps/api/dist/pilot-server.js
+Health: /health
+```
+
+Render supplies `PORT`; the server then listens on `0.0.0.0`. Without `PORT`, it
+fails closed to `127.0.0.1:8787` for local operator use.
+
+> [!WARNING]
+> The current hosted pilot service has no user authentication, authorization,
+> rate limiting, malware scanning, or durable private object store. Render local
+> disk may be ephemeral. Use synthetic or explicitly controlled pilot data only;
+> do not treat this deployment as production custody for sensitive documents.
+
+### Arc settlement runner
+
+The onchain settlement workflow is deliberately separate from the hosted pilot
+API. Copy `.env.example` to an ignored local environment file and follow
+[First Arc Settlement](docs/FIRST_ARC_SETTLEMENT.md). Browser and public API
+deployments must never receive Circle credentials, witness keys, or owner keys.
+
+## Repository map
+
+```text
+apps/
+├── api/          API boundary, private pilot server, Arc settlement runner
+├── web/          React reviewer, metrics, scenarios, and pilot UI
+└── worker/       Planned background-runtime boundary
+packages/
+├── domain/       Canonical Zod schemas and shared types
+├── evidence/     Canonical JSON, fingerprints, evidence roots
+├── witness/      W01–W10 and Witness authorization
+├── planner/      Bounded Agent and deterministic validator
+├── chain/        Arc config, simulation, Circle execution, reconciliation
+├── receipts/     Decision commitment and receipt hashing
+└── db/           Drizzle schema, migration, audit, in-memory repository
+contracts/        ObligationVault, deployment script, Foundry tests
+deployments/      Public deployment metadata
+artifacts/        Public-safe proof and pilot projection artifacts
+docs/             Architecture, security, evidence, deployment, runbooks
+```
+
+## Core invariants
+
+1. Only `VERIFIED` obligations can enter an executable payment plan.
+2. Agent output is untrusted until deterministic validation succeeds.
+3. The Agent cannot change verified amount, payee, currency, or token decimals.
+4. Ambiguous or incomplete evidence fails closed to HOLD or REJECT.
+5. Destination, policy, signer, or rules changes invalidate stale authorization.
+6. Authorization binds the business, obligation, operation, vendor, payee,
+   token, amount, evidence, decision, versions, expiry, chain, and vault.
+7. Obligation and operation IDs are independent one-time replay keys onchain.
+8. Chain state and the emitted settlement event are authoritative on retry.
+9. Monetary values cross service boundaries as integer base-unit strings;
+   floating-point money is forbidden.
+10. TEST and REAL records remain explicitly classified and separately measured.
+
+## Documentation
+
+| Document | Purpose |
+| --- | --- |
+| **[Architecture Guide](docs/ARCHITECTURE.md)** | System boundaries, flows, deployment, trust, data, and limitations |
+| [Evidence Model](docs/EVIDENCE_MODEL.md) | Evidence authority, provenance, canonical roots, W01–W10 |
+| [Witness Authorization](docs/AUTHORIZATION.md) | EIP-712 payload and authorization lifecycle |
+| [Threat Model](docs/THREAT_MODEL.md) | Threats, controls, and residual risk |
+| [First Arc Settlement](docs/FIRST_ARC_SETTLEMENT.md) | Reproducible deploy, preflight, broadcast, crash, retry, proof |
+| [REAL Pilot Runbook](docs/REAL_PILOT_RUNBOOK.md) | Private operator workflow, consent, redaction, publication |
+| [Demo Scenarios](docs/DEMO.md) | Expected reviewer scenarios and outcomes |
+| [Implementation Status](docs/IMPLEMENTATION_STATUS.md) | PRD mapping and implementation history |
+
+## Current limitations
+
+- The hosted pilot endpoint is an evaluation surface, not a hardened customer
+  portal, and it does not broadcast settlement.
+- Pilot files use local filesystem storage; hosted durability is not guaranteed.
+- The generic API has route and service boundaries, but no complete production
+  service composition or authentication middleware.
+- PostgreSQL schemas and migrations exist; the current repository implementation
+  exercised by tests is in-memory.
+- The worker package is a documented boundary, not an implemented runtime.
+- The included Decision Agent is deterministic and bounded. A model-backed Agent
+  must emit the same schema and pass the same validator.
+- Production Witness custody requires a managed `WitnessTypedDataSigner`;
+  local raw-key signing is rejected when `NODE_ENV=production`.
+- Arc proof is testnet evidence. Mainnet deployment and production operations are
+  outside the claims of this repository.
+
+## Security
+
+Do not commit private evidence, `.env` files, Circle secrets, entity secrets,
+owner keys, witness keys, or recovery material. If you find a vulnerability,
+report it privately to the repository owner instead of opening a public issue
+containing exploit details or sensitive data.

@@ -1,9 +1,10 @@
 # REAL Pilot Operator Runbook
 
 This is the smallest supported path for evaluating 1–3 real business
-obligations. It is operator-assisted and local by design. It does not create a
-customer portal, upload private files to GitHub Pages, or turn demo fixtures
-into traction.
+obligations. It is operator-assisted; local operation remains the recommended
+path for sensitive material. The hosted Vercel/Render path is a controlled
+evaluation surface, not a hardened customer portal or production document
+store. Neither path turns demo fixtures into traction.
 
 ## Privacy boundary
 
@@ -35,11 +36,16 @@ pnpm pilot:ui
 ```
 
 Open `http://localhost:5173/pilot` (use the alternate port printed by Vite if
-5173 is occupied). The API listens only on `127.0.0.1:8787`. The wizard collects
-private business and obligation data, source documents, independent consent
-references and economic context, then writes the private record and runs the
-unchanged Witness and Agent. It never exposes a public upload endpoint and it
-never represents settlement eligibility as a submitted transaction.
+5173 is occupied). The local API listens only on `127.0.0.1:8787`. The wizard
+collects private business and obligation data, source documents, independent
+consent references and economic context, then writes the private record and
+runs the unchanged Witness and Agent. It never represents settlement
+eligibility as a submitted transaction.
+
+The Vercel deployment proxies `/pilot-api/*` to the Render pilot service. That
+hosted service currently lacks authentication, rate limiting, malware scanning,
+and durable private storage; do not upload sensitive production documents until
+those controls exist.
 
 The CLI path below remains available for manual/operator-assisted intake.
 

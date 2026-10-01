@@ -23,12 +23,18 @@ Routes:
 - `/demo/destination-change` — changed payout destination held before signing
 - `/obligations/:id` — reviewer-friendly decision detail
 - `/metrics` — explicitly separated TEST and REAL metrics
-- `/pilot` — private/local REAL intake, Witness and Agent workflow
+- `/pilot` — REAL intake, Witness and Agent workflow
 
 The production bundle includes only public-safe summaries and hashes. It does
 not embed environment files, private documents, signing material or Circle
 credentials.
 
-Run the private pilot UI and localhost-only API together from the repository
-root with `pnpm pilot:ui`. The hosted route fails closed when that private
-runtime is absent.
+Run the private pilot UI and API together from the repository root with
+`pnpm pilot:ui`. Locally, Vite proxies `/pilot-api/*` to the API bound at
+`127.0.0.1:8787`. In the Vercel deployment, the same path is rewritten to the
+Render pilot service.
+
+The hosted API is an evaluation surface only: it never signs or broadcasts a
+settlement. It is not yet hardened for sensitive production documents because
+authentication, rate limiting, malware scanning, and durable private storage
+are not implemented.
