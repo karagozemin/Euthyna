@@ -28,10 +28,8 @@ function ArrowIcon() {
 
 function BrandMark() {
   return (
-    <span className="brand-mark" aria-hidden="true">
-      <span />
-      <span />
-      <span />
+    <span className="brand-mark">
+      <img src={`${import.meta.env.BASE_URL}euthyna.png`} alt="" />
     </span>
   );
 }

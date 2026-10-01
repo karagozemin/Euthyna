@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../../euthyna.png" alt="Euthyna" width="160">
+</p>
+
 # Euthyna reviewer application
 
 The public reviewer surface explains Euthyna without credentials and replays four

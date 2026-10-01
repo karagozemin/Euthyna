@@ -36,11 +36,8 @@ code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
   backdrop-filter: blur(16px);
 }
 .brand { display: inline-flex; align-items: center; gap: 11px; font: 700 22px/1 Georgia, serif; text-decoration: none; letter-spacing: -.02em; }
-.brand-mark { position: relative; display: inline-flex; width: 27px; height: 27px; align-items: flex-end; gap: 3px; padding: 4px; border: 1px solid var(--ink); border-radius: 50%; }
-.brand-mark span { width: 4px; background: var(--ink); border-radius: 4px 4px 0 0; }
-.brand-mark span:nth-child(1) { height: 7px; }
-.brand-mark span:nth-child(2) { height: 13px; }
-.brand-mark span:nth-child(3) { height: 18px; }
+.brand-mark { position: relative; display: inline-block; width: 40px; height: 40px; overflow: hidden; flex: none; }
+.brand-mark img { position: absolute; width: 74px; max-width: none; height: auto; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 .site-nav { display: flex; align-items: center; gap: 32px; font-size: 13px; font-weight: 650; }
 .site-nav a { text-decoration: none; color: var(--muted); transition: color .2s ease; }
 .site-nav a:hover, .site-nav a.active { color: var(--ink); }
@@ -154,9 +151,9 @@ td > span:not(.badge), .reason-cell { display: block; color: var(--muted); }
 .metrics-callout p { margin: 0; color: #d2e7df; line-height: 1.55; }
 
 .site-footer { min-height: 180px; padding: 50px clamp(22px, 5vw, 76px); display: flex; justify-content: space-between; align-items: flex-start; background: #0c1513; color: white; }
-.footer-brand { font-family: Georgia, serif; }
-.footer-brand .brand-mark { border-color: white; transform: scale(.8); transform-origin: left center; }
-.footer-brand .brand-mark span { background: white; }
+.footer-brand { display: inline-flex; align-items: center; gap: 10px; font-family: Georgia, serif; font-size: 22px; }
+.footer-brand .brand-mark { width: 36px; height: 36px; }
+.footer-brand .brand-mark img { width: 66px; }
 .site-footer p, .footer-meta > span { color: #87928e; font-size: 12px; }
 .footer-meta { display: flex; align-items: center; gap: 14px; text-align: right; }
 

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="euthyna.png" alt="Euthyna" width="280">
+</p>
+
 # Euthyna
 
 > **Before an agent can pay, Euthyna proves there is something to pay for.**
@@ -169,7 +173,7 @@ consent records stay under ignored `.euthyna/pilots/`; a strict publisher emits
 only [`artifacts/pilots/public-index.json`](artifacts/pilots/public-index.json).
 The committed index currently reports zero REAL businesses and obligations.
 
-The same private workflow is available as a local operator UI:
+The same private workflow is available as an operator UI:
 
 ```sh
 pnpm pilot:ui
@@ -177,8 +181,9 @@ pnpm pilot:ui
 
 Open `http://localhost:5173/pilot` (or the next port printed by Vite). The API
 binds only to `127.0.0.1:8787`; uploads are written with private permissions and
-evaluated by the unchanged W01–W10 and bounded Agent path. The public Pages
-deployment can display the route but intentionally cannot accept documents.
+evaluated by the unchanged W01–W10 and bounded Agent path. In the Vercel
+deployment, `/pilot-api/*` is proxied to the Render service configured in
+`vercel.json`, so the same workflow is available at the hosted `/pilot` route.
 Settlement eligibility is shown truthfully; no transaction is broadcast unless
 a business-bound vault and the separate operator executor are configured.
 

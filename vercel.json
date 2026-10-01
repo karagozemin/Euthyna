@@ -4,6 +4,10 @@
   "outputDirectory": "apps/web/dist",
   "rewrites": [
     {
+      "source": "/pilot-api/:path*",
+      "destination": "https://euthyna.onrender.com/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
