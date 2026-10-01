@@ -13,6 +13,7 @@ import {
   type Scenario,
   type WitnessCheck,
 } from "./data";
+import { fetchArcLiveSnapshot, type ArcLiveSnapshot } from "./arc-live";
 
 const navItems = [
   { to: "/demo", label: "Reviewer demo" },
@@ -354,7 +355,88 @@ const runLabels: Record<Scenario["slug"], string[]> = {
   "destination-change": ["Normalize payment instruction", "Compare vendor version", "Hold before Agent", "Confirm $0 moved"],
 };
 
+function ArcLiveVerifier() {
+  const [status, setStatus] = useState<"checking" | "verified" | "error">("checking");
+  const [snapshot, setSnapshot] = useState<ArcLiveSnapshot | null>(null);
+  const [error, setError] = useState("");
+  const [requestId, setRequestId] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setStatus("checking");
+    setError("");
+
+    fetchArcLiveSnapshot(controller.signal)
+      .then((result) => {
+        setSnapshot(result);
+        setStatus("verified");
+      })
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) return;
+        setSnapshot(null);
+        setError(reason instanceof Error ? reason.message : "Arc RPC verification failed.");
+        setStatus("error");
+      });
+
+    return () => controller.abort();
+  }, [requestId]);
+
+  const checkedTime = snapshot
+    ? new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(snapshot.verifiedAt))
+    : "—";
+
+  return (
+    <div className="arc-live-panel" aria-live="polite">
+      <div className="arc-live-head">
+        <div>
+          <span className="arc-live-eyebrow"><i className={status === "verified" ? "live-dot" : "live-dot live-dot--waiting"} /> Live read-only Arc RPC</span>
+          <h2>Recorded settlement, verified now.</h2>
+          <p>This screen queries Arc Testnet directly. It verifies the historical receipt; it does not broadcast a new payment.</p>
+        </div>
+        <button className="button button--light" type="button" onClick={() => setRequestId((id) => id + 1)} disabled={status === "checking"}>
+          {status === "checking" ? "Checking Arc…" : "Verify on Arc now"}
+        </button>
+      </div>
+
+      <div className="arc-live-checks">
+        <div className={status === "verified" ? "arc-live-check arc-live-check--ok" : "arc-live-check"}>
+          <span>Network</span><strong>{snapshot ? `Arc Testnet · ${snapshot.chainId}` : "Querying chain ID…"}</strong>
+        </div>
+        <div className={status === "verified" ? "arc-live-check arc-live-check--ok" : "arc-live-check"}>
+          <span>Live chain head</span><strong>{snapshot ? `#${snapshot.latestBlock.toLocaleString()}` : "Reading latest block…"}</strong>
+        </div>
+        <div className={status === "verified" ? "arc-live-check arc-live-check--ok" : "arc-live-check"}>
+          <span>Transaction receipt</span><strong>{snapshot ? `${snapshot.receiptStatus} · block ${snapshot.settlementBlock.toLocaleString()}` : "Fetching receipt…"}</strong>
+        </div>
+        <div className={status === "verified" ? "arc-live-check arc-live-check--ok" : "arc-live-check"}>
+          <span>Settlement vault</span><strong>{snapshot ? "BYTECODE DEPLOYED" : "Checking contract…"}</strong>
+        </div>
+      </div>
+
+      {status === "error" ? (
+        <div className="arc-live-error"><strong>Live verification unavailable</strong><span>{error}</span></div>
+      ) : (
+        <div className="arc-live-receipt">
+          <div><span>Committed transaction</span><code>{ARC_PROOF.transaction}</code></div>
+          <div className="arc-live-facts">
+            <span>CONFIRMATIONS <strong>{snapshot ? snapshot.confirmations.toLocaleString() : "—"}</strong></span>
+            <span>RPC LATENCY <strong>{snapshot ? `${snapshot.latencyMs} ms` : "—"}</strong></span>
+            <span>CHECKED <strong>{checkedTime}</strong></span>
+          </div>
+          <a href={ARC_PROOF.transactionExplorer} target="_blank" rel="noreferrer">Open receipt in Arc Explorer <ArrowIcon /></a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ScenarioRunner({ scenario }: { scenario: Scenario }) {
+  if (scenario.slug === "valid") return <ArcLiveVerifier />;
+
+  return <DeterministicScenarioRunner scenario={scenario} />;
+}
+
+function DeterministicScenarioRunner({ scenario }: { scenario: Scenario }) {
   const [status, setStatus] = useState<"idle" | "running" | "complete">("idle");
   const [step, setStep] = useState(-1);
 
@@ -545,7 +627,11 @@ function ScenarioPage({ scenario, focusedId }: { scenario: Scenario; focusedId?:
         <Link className="back-link" to="/demo">← All scenarios</Link>
         <div className="detail-hero-grid">
           <div><span className="scenario-letter">Scenario {scenario.letter}</span><h1>{scenario.title}</h1><p>{scenario.summary}</p></div>
-          <div className="detail-verdict"><Badge tone="test">TEST DATA</Badge><strong>{scenario.outcome.replaceAll("_", " ")}</strong><span>{scenario.moved}</span></div>
+          <div className="detail-verdict">
+            <Badge tone="test">{scenario.slug === "valid" ? "TEST FIXTURE · ONCHAIN TESTNET TX" : "TEST DATA"}</Badge>
+            <strong>{scenario.outcome.replaceAll("_", " ")}</strong><span>{scenario.moved}</span>
+            {scenario.slug === "valid" ? <small>Historical Arc Testnet settlement · live verification below</small> : null}
+          </div>
         </div>
         <ScenarioRunner scenario={scenario} />
       </section>
